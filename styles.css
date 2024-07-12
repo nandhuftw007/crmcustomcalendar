@@ -1,0 +1,108 @@
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+}
+
+#calendar {
+    width: 100%;
+    max-width: 1200px;
+    margin: 20px auto;
+    border-collapse: collapse;
+    border: 1px solid #ddd;
+}
+
+#navigator {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 10px;
+}
+
+#navigator button {
+    padding: 10px 20px;
+    font-size: 16px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+#navigator button:hover {
+    background-color: #0056b3;
+}
+
+#calendarTable {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+thead th {
+    background-color: #f4f4f4;
+    padding: 10px;
+    text-align: center;
+    border-bottom: 1px solid #ddd;
+}
+
+tbody td {
+    border-bottom: 1px solid #ddd;
+    text-align: center;
+    padding: 10px;
+}
+
+.colHeader {
+    background-color: #f4f4f4;
+    font-weight: bold;
+    border-bottom: 1px solid #ddd;
+}
+
+.rowHeader {
+    background-color: #f4f4f4;
+    font-weight: bold;
+    text-align: left;
+    padding-left: 10px;
+}
+
+.cell {
+    cursor: pointer;
+    position: relative;
+    min-width: 100px;
+}
+
+.cell:hover {
+    background-color: #e0e0e0;
+}
+
+.blocked {
+    background-color: #ff6961;
+    color: white;
+}
+
+/* Additional styles for the new content */
+.zrc-checkbox {
+    margin-right: 5px;
+}
+
+.tsi-repeats-shift {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.as-bldtext,
+.timelog-noshow,
+.rstr-jobtitle {
+    font-size: 0.8em; /* Smaller font size */
+}
+
+.timelog-noshow {
+    color: red;
+}
+
+.rstr-jobtitle {
+    margin-left: 10px;
+}
+
+.shift-icons {
+    margin-left: auto;
+}
