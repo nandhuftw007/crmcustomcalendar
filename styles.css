@@ -22,8 +22,9 @@ body {
     padding: 20px;
     background-color: #fff;
     border: 1px solid #ddd;
-    border-radius: 5px;
+    border-radius: 10px;
     box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    overflow: hidden; /* Add this to prevent table from overflowing */
 }
 
 /* Navigator */
@@ -32,6 +33,11 @@ body {
     display: flex;
     justify-content: space-between;
     margin-bottom: 20px;
+    padding: 10px;
+    background-color: #f7f7f7;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
 }
 
 #navigator button {
@@ -47,7 +53,7 @@ body {
 }
 
 #navigator button:hover {
-    background-color: #f7f7f7;
+    background-color: #f2f2f2;
 }
 
 #navigator button:active {
@@ -61,21 +67,24 @@ body {
     width: 100%;
     border-collapse: collapse;
     table-layout: fixed;
+    border-spacing: 0; /* Add this to remove extra space between cells */
 }
 
 thead th {
     background-color: #f7f7f7;
-    padding: 10px;
+    padding: 15px;
     text-align: center;
     border-bottom: 1px solid #ddd;
     font-weight: bold;
     font-size: 14px;
+    color: #333;
 }
 
 tbody td {
-    padding: 10px;
+    padding: 15px;
     text-align: center;
     border-bottom: 1px solid #ddd;
+    border-right: 1px solid #ddd;
 }
 
 .colHeader {
@@ -83,23 +92,26 @@ tbody td {
     font-weight: bold;
     border-bottom: 1px solid #ddd;
     font-size: 14px;
+    color: #333;
 }
 
 .rowHeader {
     background-color: #f7f7f7;
     font-weight: bold;
     text-align: left;
-    padding-left: 10px;
+    padding-left: 15px;
     font-size: 14px;
+    color: #333;
     border-right: 1px solid #ddd;
 }
 
 .cell {
     cursor: pointer;
     position: relative;
-    min-width: 100px;
-    padding: 10px;
+    min-width: 120px;
+    padding: 15px;
     border-right: 1px solid #ddd;
+    transition: background-color 0.2s ease;
 }
 
 .cell:hover {
@@ -142,61 +154,42 @@ tbody td {
     margin-left: auto;
 }
 
-/* Specific UI changes */
-#calendarHeader {
-    background-color: #f7f7f7;
-    border-bottom: 1px solid #ddd;
-    border-right: 1px solid #ddd;
-}
-
-#calendarHeader th {
-    text-align: center;
-    padding: 10px;
-    font-size: 14px;
-    font-weight: bold;
-}
-
-#calendarTable tbody {
-    border-right: 1px solid #ddd;
-}
-
-#calendarTable tbody tr {
-    background-color: #fff;
-    border-bottom: 1px solid #ddd;
-}
-
-#calendarTable tbody tr:last-child {
-    border-bottom: none;
-}
-
-#calendarTable tbody tr td {
-    padding: 10px;
-    text-align: center;
-    border-bottom: 1px solid #ddd;
-}
-
-#calendarTable tbody tr td:first-child {
-    text-align: left;
-    padding-left: 10px;
-    border-right: 1px solid #ddd;
-}
-
-.corner {
-    background-color: #f7f7f7;
-    border-bottom: 1px solid #ddd;
-    border-right: 1px solid #ddd;
-    padding: 10px;
-    text-align: center;
-}
-
 /* Responsive adjustments */
+
+@media (max-width: 1200px) {
+    #calendar {
+        max-width: 90%;
+    }
+}
+
+@media (max-width: 992px) {
+    #calendar {
+        max-width: 80%;
+    }
+}
+
 @media (max-width: 768px) {
+    #calendar {
+        max-width: 70%;
+    }
     #calendarTable th,
     #calendarTable td {
         font-size: 12px;
     }
-
     .cell {
         min-width: 80px;
+    }
+}
+
+@media (max-width: 480px) {
+    #calendar {
+        max-width: 90%;
+    }
+    #calendarTable th,
+    #calendarTable td {
+        font-size: 10px;
+    }
+    .cell {
+        min-width:60px;
     }
 }
