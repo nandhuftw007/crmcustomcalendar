@@ -27,7 +27,6 @@ body {
     margin: 0;
 }
 
-
 /* Calendar Container */
 
 #calendar {
@@ -99,6 +98,7 @@ tbody td {
     text-align: center;
     border-bottom: 1px solid #ddd;
     border-right: 1px solid #ddd;
+    position: relative; /* For positioning the unavailability options */
 }
 
 .colHeader {
@@ -137,35 +137,53 @@ tbody td {
     color: #fff;
 }
 
-/* Additional Styles */
-
-.zrc-checkbox {
-    margin-right: 5px;
+/* Unavailability Options */
+.unavailability-options {
+    display: none;
+    position: absolute;
+    bottom: 10px;
+    right: 10px;
+    background-color: #fff;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    z-index: 10;
+    padding: 10px;
 }
 
-.tsi-repeats-shift {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-}
-
-.as-bldtext,
-.timelog-noshow,
-.rstr-jobtitle {
+.unavailability-options button {
+    display: block;
+    width: 100%;
+    margin: 5px 0;
+    padding: 5px;
     font-size: 12px;
-    color: #666;
+    color: #333;
+    background-color: #f7f7f7;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    cursor: pointer;
 }
 
-.timelog-noshow {
-    color: #ff0000;
+.unavailability-options button:hover {
+    background-color: #eee;
 }
 
-.rstr-jobtitle {
-    margin-left: 10px;
+.three-dots-button {
+    position: absolute;
+    bottom: 10px;
+    right: 10px;
+    padding: 5px;
+    font-size: 12px;
+    color: #333;
+    background-color: #fff;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
 }
 
-.shift-icons {
-    margin-left: auto;
+.three-dots-button:hover {
+    background-color: #f2f2f2;
 }
 
 /* Responsive adjustments */
@@ -204,6 +222,6 @@ tbody td {
         font-size: 10px;
     }
     .cell {
-        min-width:60px;
+        min-width: 60px;
     }
 }
