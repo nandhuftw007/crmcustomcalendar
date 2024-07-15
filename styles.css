@@ -14,6 +14,20 @@ body {
     background-color: #f9f9f9;
 }
 
+.schedule-box {
+    background-color: #e9ffd7;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    padding: 5px;
+    margin: 5px 0;
+    text-align: left;
+}
+
+.schedule-box p {
+    margin: 0;
+}
+
+
 /* Calendar Container */
 
 #calendar {
