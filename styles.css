@@ -4,19 +4,19 @@
     box-sizing: border-box;
     margin: 0;
     padding: 0;
-  }
-  
-  body {
+}
+
+body {
     font-family: 'Open Sans', sans-serif;
     font-size: 14px;
     line-height: 1.5;
     color: #333;
     background-color: #f9f9f9;
-  }
-  
-  /* Calendar Container */
-  
-  #calendar {
+}
+
+/* Calendar Container */
+
+#calendar {
     max-width: 1200px;
     margin: 20px auto;
     padding: 20px;
@@ -24,17 +24,17 @@
     border: 1px solid #ddd;
     border-radius: 5px;
     box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-  }
-  
-  /* Navigator */
-  
-  #navigator {
+}
+
+/* Navigator */
+
+#navigator {
     display: flex;
     justify-content: space-between;
     margin-bottom: 20px;
-  }
-  
-  #navigator button {
+}
+
+#navigator button {
     padding: 10px 20px;
     font-size: 14px;
     font-weight: bold;
@@ -44,98 +44,159 @@
     border-radius: 5px;
     cursor: pointer;
     transition: background-color 0.2s ease;
-  }
-  
-  #navigator button:hover {
+}
+
+#navigator button:hover {
     background-color: #f7f7f7;
-  }
-  
-  #navigator button:active {
+}
+
+#navigator button:active {
     background-color: #eee;
     box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
-  }
-  
-  /* Calendar Table */
-  
-  #calendarTable {
+}
+
+/* Calendar Table */
+
+#calendarTable {
     width: 100%;
     border-collapse: collapse;
     table-layout: fixed;
-  }
-  
-  thead th {
+}
+
+thead th {
     background-color: #f7f7f7;
     padding: 10px;
     text-align: center;
     border-bottom: 1px solid #ddd;
     font-weight: bold;
     font-size: 14px;
-  }
-  
-  tbody td {
+}
+
+tbody td {
     padding: 10px;
     text-align: center;
     border-bottom: 1px solid #ddd;
-  }
-  
-  .colHeader {
+}
+
+.colHeader {
     background-color: #f7f7f7;
     font-weight: bold;
     border-bottom: 1px solid #ddd;
     font-size: 14px;
-  }
-  
-  .rowHeader {
+}
+
+.rowHeader {
     background-color: #f7f7f7;
     font-weight: bold;
     text-align: left;
     padding-left: 10px;
     font-size: 14px;
-  }
-  
-  .cell {
+    border-right: 1px solid #ddd;
+}
+
+.cell {
     cursor: pointer;
     position: relative;
     min-width: 100px;
     padding: 10px;
-  }
-  
-  .cell:hover {
+    border-right: 1px solid #ddd;
+}
+
+.cell:hover {
     background-color: #f2f2f2;
-  }
-  
-  .blocked {
+}
+
+.blocked {
     background-color: #ff6961;
     color: #fff;
-  }
-  
-  /* Additional Styles */
-  
-  .zrc-checkbox {
+}
+
+/* Additional Styles */
+
+.zrc-checkbox {
     margin-right: 5px;
-  }
-  
-  .tsi-repeats-shift {
+}
+
+.tsi-repeats-shift {
     display: flex;
     align-items: center;
     justify-content: space-between;
-  }
-  
-  .as-bldtext,
-  .timelog-noshow,
-  .rstr-jobtitle {
+}
+
+.as-bldtext,
+.timelog-noshow,
+.rstr-jobtitle {
     font-size: 12px;
     color: #666;
-  }
-  
-  .timelog-noshow {
+}
+
+.timelog-noshow {
     color: #ff0000;
-  }
-  
-  .rstr-jobtitle {
+}
+
+.rstr-jobtitle {
     margin-left: 10px;
-  }
-  
-  .shift-icons {
+}
+
+.shift-icons {
     margin-left: auto;
-  }
+}
+
+/* Specific UI changes */
+#calendarHeader {
+    background-color: #f7f7f7;
+    border-bottom: 1px solid #ddd;
+    border-right: 1px solid #ddd;
+}
+
+#calendarHeader th {
+    text-align: center;
+    padding: 10px;
+    font-size: 14px;
+    font-weight: bold;
+}
+
+#calendarTable tbody {
+    border-right: 1px solid #ddd;
+}
+
+#calendarTable tbody tr {
+    background-color: #fff;
+    border-bottom: 1px solid #ddd;
+}
+
+#calendarTable tbody tr:last-child {
+    border-bottom: none;
+}
+
+#calendarTable tbody tr td {
+    padding: 10px;
+    text-align: center;
+    border-bottom: 1px solid #ddd;
+}
+
+#calendarTable tbody tr td:first-child {
+    text-align: left;
+    padding-left: 10px;
+    border-right: 1px solid #ddd;
+}
+
+.corner {
+    background-color: #f7f7f7;
+    border-bottom: 1px solid #ddd;
+    border-right: 1px solid #ddd;
+    padding: 10px;
+    text-align: center;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    #calendarTable th,
+    #calendarTable td {
+        font-size: 12px;
+    }
+
+    .cell {
+        min-width: 80px;
+    }
+}
