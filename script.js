@@ -84,18 +84,19 @@ function populateCalendarBody(schedules) {
                     let endTimeString = formatTimeTo12Hour(endDateTime);
 
                     if (cellDate.toDateString() === startDateTime.toDateString()) {
-                        cell.innerHTML = `<p>${jobName}</p><p>${startTimeString} - 11:59 PM</p>`;
+                        cell.innerHTML = `<p>${jobName}</p><p>${startTimeString} - ${endTimeString}</p>`;
                     } else if (cellDate.toDateString() === endDateTime.toDateString()) {
-                        cell.innerHTML = `<p>${jobName}</p><p>${endTimeString}</p>`;
+                        cell.innerHTML = `<p>${jobName}</p><p>${startTimeString} - ${endTimeString}</p>`;
                     } else if (cellDate > startDateTime && cellDate < endDateTime) {
-                        cell.innerHTML = `<p>${jobName}</p><p>Full day</p>`;
+                        cell.innerHTML = `<p>${jobName}</p><p>${startTimeString} - ${endTimeString}</p>`;
                     }
                 }
 
-                // Display the start time on the previous day of the start date
+                // Display the start time and end time on the previous day of the start date
                 if (cellDate.toDateString() === prevDayDateTime.toDateString()) {
                     let startTimeString = formatTimeTo12Hour(startDateTime);
-                    cell.innerHTML = `<p>${jobName}</p><p>${startTimeString}</p>`;
+                    let endTimeString = formatTimeTo12Hour(endDateTime);
+                    cell.innerHTML = `<p>${jobName}</p><p>${startTimeString} - ${endTimeString}</p>`;
                 }
             }
 
@@ -105,6 +106,7 @@ function populateCalendarBody(schedules) {
         tbody.appendChild(row);
     });
 }
+
 
 function fetchAndPopulateCalendar() {
     var conn_name = "crm";
