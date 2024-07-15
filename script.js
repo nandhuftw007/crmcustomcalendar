@@ -46,6 +46,70 @@ function getDayOfWeek(dayIndex) {
     return days[dayIndex];
 }
 
+function createThreeDotsButton() {
+    let threeDotsButton = document.createElement('button');
+    threeDotsButton.className = 'three-dots-button';
+    threeDotsButton.innerText = '...';
+    return threeDotsButton;
+}
+
+function createUnavailabilityOptions() {
+    let options = document.createElement('div');
+    options.className = 'unavailability-options';
+    options.style.display = 'none';
+
+    let allDayButton = document.createElement('button');
+    allDayButton.innerText = 'Mark Unavailable (All Day)';
+    allDayButton.addEventListener('click', function() {
+        alert('Marked Unavailable for the Entire Day');
+        options.style.display = 'none';
+    });
+
+    let specificTimeButton = document.createElement('button');
+    specificTimeButton.innerText = 'Mark Unavailable (Specific Time)';
+    specificTimeButton.addEventListener('click', function() {
+        let startTimeInput = document.createElement('input');
+        startTimeInput.type = 'time';
+        startTimeInput.placeholder = 'Start Time';
+
+        let endTimeInput = document.createElement('input');
+        endTimeInput.type = 'time';
+        endTimeInput.placeholder = 'End Time';
+
+        let confirmButton = document.createElement('button');
+        confirmButton.innerText = 'Confirm';
+        confirmButton.addEventListener('click', function() {
+            // Handle specific time period unavailability marking here
+            let startTime = startTimeInput.value;
+            let endTime = endTimeInput.value;
+            if (startTime && endTime) {
+                alert(`Marked Unavailable from ${startTime} to ${endTime}`);
+                options.style.display = 'none';
+            } else {
+                alert('Please select both start and end times.');
+            }
+        });
+
+        options.appendChild(startTimeInput);
+        options.appendChild(endTimeInput);
+        options.appendChild(confirmButton);
+    });
+
+    options.appendChild(allDayButton);
+    options.appendChild(specificTimeButton);
+
+    return options;
+}
+
+function handleThreeDotsButtonClick(event) {
+    let options = event.target.parentElement.querySelector('.unavailability-options');
+    if (options.style.display === 'none' || options.style.display === '') {
+        options.style.display = 'block';
+    } else {
+        options.style.display = 'none';
+    }
+}
+
 function populateCalendarBody(schedules) {
     let tbody = document.querySelector('#calendarTable tbody');
     tbody.innerHTML = ""; // Clear any existing rows
@@ -132,6 +196,14 @@ function populateCalendarBody(schedules) {
                 }
             });
 
+            // Add the three-dots button and unavailability options
+            let threeDotsButton = createThreeDotsButton();
+            threeDotsButton.addEventListener('click', handleThreeDotsButtonClick);
+            cell.appendChild(threeDotsButton);
+
+            let unavailabilityOptions = createUnavailabilityOptions();
+            cell.appendChild(unavailabilityOptions);
+
             row.appendChild(cell);
         });
 
@@ -148,16 +220,16 @@ function fetchAndPopulateCalendar() {
     };
 
     ZOHO.CRM.CONNECTION.invoke(conn_name, req_data)
-        .then(function(response) {
-            console.log(response);
-            if (response.details && response.details.statusMessage && response.details.statusMessage.data.length > 0) {
-                let schedules = response.details.statusMessage.data;
-                populateCalendarBody(schedules);
-            }
-        })
-        .catch(function(error) {
-            console.error('Error invoking Zoho API:', error);
-        });
+    .then(function(response) {
+        console.log(response);
+        if (response.details && response.details.statusMessage && response.details.statusMessage.data.length > 0) {
+            let schedules = response.details.statusMessage.data;
+            populateCalendarBody(schedules);
+        }
+    })
+    .catch(function(error) {
+        console.error('Error invoking Zoho API:', error);
+    });
 }
 
 ZOHO.embeddedApp.on("PageLoad", function(data) {
@@ -184,3 +256,14 @@ document.getElementById('currentWeek').addEventListener('click', function() {
     populateCalendarHeader();
     fetchAndPopulateCalendar();
 });
+
+// Close unavailability options when clicking outside
+document.addEventListener('click', function(event) {
+    let options = document.querySelectorAll('.unavailability-options');
+    options.forEach(option => {
+        if (!option.contains(event.target) && !option.previousSibling.contains(event.target)) {
+            option.style.display = 'none';
+        }
+    });
+});
+
