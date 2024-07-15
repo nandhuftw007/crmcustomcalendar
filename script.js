@@ -55,11 +55,18 @@ function populateCalendarBody(schedules) {
     const weekEndDate = new Date(weekDates[weekDates.length - 1]);
     weekEndDate.setHours(23, 59, 59, 999);
 
+    // Aggregate schedules by temp name
+    let aggregatedSchedules = {};
     schedules.forEach(schedule => {
         let tempName = schedule.Schedule_For_Temp ? schedule.Schedule_For_Temp.name : "No Name";
-        let jobName = schedule.Job ? schedule.Job.name : "No Job Assigned";
-        let daysInWeek = schedule.Days_in_the_Week; // Get the Days_in_the_Week field
+        if (!aggregatedSchedules[tempName]) {
+            aggregatedSchedules[tempName] = [];
+        }
+        aggregatedSchedules[tempName].push(schedule);
+    });
 
+    // Populate the calendar body
+    for (let tempName in aggregatedSchedules) {
         let row = document.createElement('tr');
 
         let rowHeader = document.createElement('td');
@@ -67,23 +74,7 @@ function populateCalendarBody(schedules) {
         rowHeader.innerText = tempName;
         row.appendChild(rowHeader);
 
-        // Parse the start and end date-time strings
-        let startDateTime = new Date(schedule.Start_Date_and_Work_Start_Time);
-        let endDateTime = new Date(schedule.End_Date_and_Work_End_Time);
-
-        // Calculate the date for the previous day of the start date
-        let prevDayDateTime = new Date(startDateTime);
-        prevDayDateTime.setDate(prevDayDateTime.getDate() - 0);
-
-        // Get the days of the week selected
-        let selectedDays = [];
-        if (daysInWeek.includes('Daily')) {
-            selectedDays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-        } else if (daysInWeek.includes('Weekdays')) {
-            selectedDays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
-        } else {
-            selectedDays = daysInWeek; // Use the selected days
-        }
+        let tempSchedules = aggregatedSchedules[tempName];
 
         weekDates.forEach(dateString => {
             let cell = document.createElement('td');
@@ -95,34 +86,57 @@ function populateCalendarBody(schedules) {
 
             let dayOfWeek = getDayOfWeek(cellDate.getDay());
 
-            // Check if the current cell date is within the start and end date-time range
-            if (selectedDays.includes(dayOfWeek)) {
-                if (startDateTime <= cellDate && endDateTime >= cellDate) {
-                    let startTimeString = formatTimeTo12Hour(startDateTime);
-                    let endTimeString = formatTimeTo12Hour(endDateTime);
+            tempSchedules.forEach(schedule => {
+                let jobName = schedule.Job ? schedule.Job.name : "No Job Assigned";
+                let daysInWeek = schedule.Days_in_the_Week;
 
-                    if (cellDate.toDateString() === startDateTime.toDateString()) {
-                        cell.innerHTML = `<p>${jobName}</p><p>${startTimeString} - ${endTimeString}</p>`;
-                    } else if (cellDate.toDateString() === endDateTime.toDateString()) {
-                        cell.innerHTML = `<p>${jobName}</p><p>${startTimeString} - ${endTimeString}</p>`;
-                    } else if (cellDate > startDateTime && cellDate < endDateTime) {
-                        cell.innerHTML = `<p>${jobName}</p><p>${startTimeString} - ${endTimeString}</p>`;
+                // Parse the start and end date-time strings
+                let startDateTime = new Date(schedule.Start_Date_and_Work_Start_Time);
+                let endDateTime = new Date(schedule.End_Date_and_Work_End_Time);
+
+                // Calculate the date for the previous day of the start date
+                let prevDayDateTime = new Date(startDateTime);
+                prevDayDateTime.setDate(prevDayDateTime.getDate() - 0);
+
+                // Get the days of the week selected
+                let selectedDays = [];
+                if (daysInWeek.includes('Daily')) {
+                    selectedDays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+                } else if (daysInWeek.includes('Weekdays')) {
+                    selectedDays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
+                } else {
+                    selectedDays = daysInWeek; // Use the selected days
+                }
+
+                // Check if the current cell date is within the start and end date-time range
+                if (selectedDays.includes(dayOfWeek)) {
+                    if (startDateTime <= cellDate && endDateTime >= cellDate) {
+                        let startTimeString = formatTimeTo12Hour(startDateTime);
+                        let endTimeString = formatTimeTo12Hour(endDateTime);
+
+                        if (cellDate.toDateString() === startDateTime.toDateString()) {
+                            cell.innerHTML += `<div class="schedule-box"><p>${jobName}</p><p>${startTimeString} - ${endTimeString}</p></div>`;
+                        } else if (cellDate.toDateString() === endDateTime.toDateString()) {
+                            cell.innerHTML += `<div class="schedule-box"><p>${jobName}</p><p>${startTimeString} - ${endTimeString}</p></div>`;
+                        } else if (cellDate > startDateTime && cellDate < endDateTime) {
+                            cell.innerHTML += `<div class="schedule-box"><p>${jobName}</p><p>${startTimeString} - ${endTimeString}</p></div>`;
+                        }
+                    }
+
+                    // Display the start time and end time on the previous day of the start date
+                    if (cellDate.toDateString() === prevDayDateTime.toDateString()) {
+                        let startTimeString = formatTimeTo12Hour(startDateTime);
+                        let endTimeString = formatTimeTo12Hour(endDateTime);
+                        cell.innerHTML += `<div class="schedule-box"><p>${jobName}</p><p>${startTimeString} - ${endTimeString}</p></div>`;
                     }
                 }
-
-                // Display the start time and end time on the previous day of the start date
-                if (cellDate.toDateString() === prevDayDateTime.toDateString()) {
-                    let startTimeString = formatTimeTo12Hour(startDateTime);
-                    let endTimeString = formatTimeTo12Hour(endDateTime);
-                    cell.innerHTML = `<p>${jobName}</p><p>${startTimeString} - ${endTimeString}</p>`;
-                }
-            }
+            });
 
             row.appendChild(cell);
         });
 
         tbody.appendChild(row);
-    });
+    }
 }
 
 function fetchAndPopulateCalendar() {
