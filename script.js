@@ -41,6 +41,11 @@ function formatTimeTo12Hour(date) {
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
 }
 
+function getDayOfWeek(dayIndex) {
+    const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    return days[dayIndex];
+}
+
 function populateCalendarBody(schedules) {
     let tbody = document.querySelector('#calendarTable tbody');
     tbody.innerHTML = ""; // Clear any existing rows
@@ -53,6 +58,7 @@ function populateCalendarBody(schedules) {
     schedules.forEach(schedule => {
         let tempName = schedule.Schedule_For_Temp ? schedule.Schedule_For_Temp.name : "No Name";
         let jobName = schedule.Job ? schedule.Job.name : "No Job Assigned";
+        let daysInWeek = schedule.Days_in_the_Week; // Get the Days_in_the_Week field
 
         let row = document.createElement('tr');
 
@@ -69,6 +75,16 @@ function populateCalendarBody(schedules) {
         let prevDayDateTime = new Date(startDateTime);
         prevDayDateTime.setDate(prevDayDateTime.getDate() - 0);
 
+        // Get the days of the week selected
+        let selectedDays = [];
+        if (daysInWeek.includes('Daily')) {
+            selectedDays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+        } else if (daysInWeek.includes('Weekdays')) {
+            selectedDays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
+        } else {
+            selectedDays = daysInWeek; // Use the selected days
+        }
+
         weekDates.forEach(dateString => {
             let cell = document.createElement('td');
             cell.className = 'cell';
@@ -77,8 +93,10 @@ function populateCalendarBody(schedules) {
             let cellDate = new Date(dateString);
             cellDate.setHours(0, 0, 0, 0); // Set the time component to the start of the day
 
+            let dayOfWeek = getDayOfWeek(cellDate.getDay());
+
             // Check if the current cell date is within the start and end date-time range
-            if (cellDate >= weekStartDate && cellDate <= weekEndDate) {
+            if (selectedDays.includes(dayOfWeek)) {
                 if (startDateTime <= cellDate && endDateTime >= cellDate) {
                     let startTimeString = formatTimeTo12Hour(startDateTime);
                     let endTimeString = formatTimeTo12Hour(endDateTime);
@@ -106,7 +124,6 @@ function populateCalendarBody(schedules) {
         tbody.appendChild(row);
     });
 }
-
 
 function fetchAndPopulateCalendar() {
     var conn_name = "crm";
