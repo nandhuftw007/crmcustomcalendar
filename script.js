@@ -17,17 +17,14 @@ function getWeekDates(date) {
 function populateCalendarHeader() {
     const weekDates = getWeekDates(new Date(currentDate));
     const calendarHeader = document.getElementById('calendarHeader');
-
     // Clear any existing headers
     while (calendarHeader.firstChild) {
         calendarHeader.removeChild(calendarHeader.firstChild);
     }
-
     // Add corner cell
     const cornerCell = document.createElement('th');
     cornerCell.className = 'corner';
     calendarHeader.appendChild(cornerCell);
-
     // Add date headers
     weekDates.forEach(date => {
         const dateHeader = document.createElement('th');
@@ -53,51 +50,19 @@ function createThreeDotsButton() {
     return threeDotsButton;
 }
 
-function createUnavailabilityOptions() {
+function createUnavailabilityOptions(tempId, cellDate) {
     let options = document.createElement('div');
     options.className = 'unavailability-options';
     options.style.display = 'none';
-
     let allDayButton = document.createElement('button');
     allDayButton.innerText = 'Mark Unavailable (All Day)';
+    allDayButton.dataset.tempId = tempId;
+    allDayButton.dataset.cellDate = cellDate;
     allDayButton.addEventListener('click', function() {
-        alert('Marked Unavailable for the Entire Day');
+        insertTimeOffRecord(this.dataset.tempId, this.dataset.cellDate);
         options.style.display = 'none';
     });
-
-    let specificTimeButton = document.createElement('button');
-    specificTimeButton.innerText = 'Mark Unavailable (Specific Time)';
-    specificTimeButton.addEventListener('click', function() {
-        let startTimeInput = document.createElement('input');
-        startTimeInput.type = 'time';
-        startTimeInput.placeholder = 'Start Time';
-
-        let endTimeInput = document.createElement('input');
-        endTimeInput.type = 'time';
-        endTimeInput.placeholder = 'End Time';
-
-        let confirmButton = document.createElement('button');
-        confirmButton.innerText = 'Confirm';
-        confirmButton.addEventListener('click', function() {
-            // Handle specific time period unavailability marking here
-            let startTime = startTimeInput.value;
-            let endTime = endTimeInput.value;
-            if (startTime && endTime) {
-                alert(`Marked Unavailable from ${startTime} to ${endTime}`);
-                options.style.display = 'none';
-            } else {
-                alert('Please select both start and end times.');
-            }
-        });
-
-        options.appendChild(startTimeInput);
-        options.appendChild(endTimeInput);
-        options.appendChild(confirmButton);
-    });
-
     options.appendChild(allDayButton);
-    options.appendChild(specificTimeButton);
-
     return options;
 }
 
@@ -117,91 +82,80 @@ function populateCalendarBody(schedules) {
     const weekDates = getWeekDates(new Date(currentDate));
     const weekStartDate = new Date(weekDates[0]);
     const weekEndDate = new Date(weekDates[weekDates.length - 1]);
-    weekEndDate.setHours(23, 59, 59, 999);
+    weekEndDate.setHours(23, 59, 59, 999); // Set the end date to the last millisecond of the day
 
-    // Aggregate schedules by temp name
     let aggregatedSchedules = {};
     schedules.forEach(schedule => {
-        let tempName = schedule.Schedule_For_Temp ? schedule.Schedule_For_Temp.name : "No Name";
-        if (!aggregatedSchedules[tempName]) {
-            aggregatedSchedules[tempName] = [];
+        if (schedule.Schedule_For_Temp && schedule.Schedule_For_Temp.name && schedule.Schedule_For_Temp.id) {
+            let tempName = schedule.Schedule_For_Temp.name;
+            let tempId = schedule.Schedule_For_Temp.id;
+            if (!aggregatedSchedules[tempName]) {
+                aggregatedSchedules[tempName] = { id: tempId, schedules: [] };
+            }
+            aggregatedSchedules[tempName].schedules.push(schedule);
         }
-        aggregatedSchedules[tempName].push(schedule);
     });
 
-    // Populate the calendar body
     for (let tempName in aggregatedSchedules) {
-        let row = document.createElement('tr');
-
+        let row = document.createElement('tr'); // Declare row variable
         let rowHeader = document.createElement('td');
         rowHeader.className = 'rowHeader';
-        rowHeader.innerText = tempName;
+        rowHeader.innerText = `${tempName} (${aggregatedSchedules[tempName].id})`; // Display temp ID alongside temp name
         row.appendChild(rowHeader);
 
-        let tempSchedules = aggregatedSchedules[tempName];
-
+        let tempSchedules = aggregatedSchedules[tempName].schedules;
         weekDates.forEach(dateString => {
             let cell = document.createElement('td');
             cell.className = 'cell';
             cell.dataset.time = `${dateString}, ${tempName}`;
-
             let cellDate = new Date(dateString);
             cellDate.setHours(0, 0, 0, 0); // Set the time component to the start of the day
-
             let dayOfWeek = getDayOfWeek(cellDate.getDay());
 
             tempSchedules.forEach(schedule => {
-                let jobName = schedule.Job ? schedule.Job.name : "No Job Assigned";
-                let daysInWeek = schedule.Days_in_the_Week;
-
-                // Parse the start and end date-time strings
-                let startDateTime = new Date(schedule.Start_Date_and_Work_Start_Time);
-                let endDateTime = new Date(schedule.End_Date_and_Work_End_Time);
-
-                // Calculate the date for the previous day of the start date
-                let prevDayDateTime = new Date(startDateTime);
-                prevDayDateTime.setDate(prevDayDateTime.getDate() - 0);
-
-                // Get the days of the week selected
-                let selectedDays = [];
-                if (daysInWeek.includes('Daily')) {
-                    selectedDays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-                } else if (daysInWeek.includes('Weekdays')) {
-                    selectedDays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
-                } else {
-                    selectedDays = daysInWeek; // Use the selected days
-                }
-
-                // Check if the current cell date is within the start and end date-time range
-                if (selectedDays.includes(dayOfWeek)) {
-                    if (startDateTime <= cellDate && endDateTime >= cellDate) {
-                        let startTimeString = formatTimeTo12Hour(startDateTime);
-                        let endTimeString = formatTimeTo12Hour(endDateTime);
-
-                        if (cellDate.toDateString() === startDateTime.toDateString()) {
-                            cell.innerHTML += `<div class="schedule-box"><p>${jobName}</p><p>${startTimeString} - ${endTimeString}</p></div>`;
-                        } else if (cellDate.toDateString() === endDateTime.toDateString()) {
-                            cell.innerHTML += `<div class="schedule-box"><p>${jobName}</p><p>${startTimeString} - ${endTimeString}</p></div>`;
-                        } else if (cellDate > startDateTime && cellDate < endDateTime) {
-                            cell.innerHTML += `<div class="schedule-box"><p>${jobName}</p><p>${startTimeString} - ${endTimeString}</p></div>`;
-                        }
+                if (schedule.Schedule_For_Temp && schedule.Schedule_For_Temp.name && schedule.Schedule_For_Temp.id) {
+                    let jobName = schedule.Job ? schedule.Job.name : "No Job Assigned";
+                    let daysInWeek = schedule.Days_in_the_Week;
+                    let startDateTime = new Date(schedule.Start_Date_and_Work_Start_Time);
+                    let endDateTime = new Date(schedule.End_Date_and_Work_End_Time);
+                    let prevDayDateTime = new Date(startDateTime);
+                    prevDayDateTime.setDate(prevDayDateTime.getDate() - 0);
+                    let selectedDays = [];
+                    if (daysInWeek.includes('Daily')) {
+                        selectedDays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+                    } else if (daysInWeek.includes('Weekdays')) {
+                        selectedDays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
+                    } else {
+                        selectedDays = daysInWeek;
                     }
 
-                    // Display the start time and end time on the previous day of the start date
-                    if (cellDate.toDateString() === prevDayDateTime.toDateString()) {
-                        let startTimeString = formatTimeTo12Hour(startDateTime);
-                        let endTimeString = formatTimeTo12Hour(endDateTime);
-                        cell.innerHTML += `<div class="schedule-box"><p>${jobName}</p><p>${startTimeString} - ${endTimeString}</p></div>`;
+                    if (selectedDays.includes(dayOfWeek)) {
+                        if (startDateTime <= cellDate && endDateTime >= cellDate) {
+                            let startTimeString = formatTimeTo12Hour(startDateTime);
+                            let endTimeString = formatTimeTo12Hour(endDateTime);
+                            if (cellDate.toDateString() === startDateTime.toDateString()) {
+                                cell.innerHTML += `<div class="schedule-box"><p>${jobName}</p><p>${startTimeString} - ${endTimeString}</p></div>`;
+                            } else if (cellDate.toDateString() === endDateTime.toDateString()) {
+                                cell.innerHTML += `<div class="schedule-box"><p>${jobName}</p><p>${startTimeString} - ${endTimeString}</p></div>`;
+                            } else if (cellDate > startDateTime && cellDate < endDateTime) {
+                                cell.innerHTML += `<div class="schedule-box"><p>${jobName}</p><p>${startTimeString} - ${endTimeString}</p></div>`;
+                            }
+                        }
+
+                        if (cellDate.toDateString() === prevDayDateTime.toDateString()) {
+                            let startTimeString = formatTimeTo12Hour(startDateTime);
+                            let endTimeString = formatTimeTo12Hour(endDateTime);
+                            cell.innerHTML += `<div class="schedule-box"><p>${jobName}</p><p>${startTimeString} - ${endTimeString}</p></div>`;
+                        }
                     }
                 }
             });
 
-            // Add the three-dots button and unavailability options
             let threeDotsButton = createThreeDotsButton();
             threeDotsButton.addEventListener('click', handleThreeDotsButtonClick);
             cell.appendChild(threeDotsButton);
 
-            let unavailabilityOptions = createUnavailabilityOptions();
+            let unavailabilityOptions = createUnavailabilityOptions(aggregatedSchedules[tempName].id, cellDate);
             cell.appendChild(unavailabilityOptions);
 
             row.appendChild(cell);
@@ -210,6 +164,7 @@ function populateCalendarBody(schedules) {
         tbody.appendChild(row);
     }
 }
+
 
 function fetchAndPopulateCalendar() {
     var conn_name = "crm";
@@ -232,38 +187,65 @@ function fetchAndPopulateCalendar() {
     });
 }
 
-ZOHO.embeddedApp.on("PageLoad", function(data) {
-    populateCalendarHeader(); // Populate the calendar header on page load
-    fetchAndPopulateCalendar();
-});
+$(document).ready(function() {
+    // Initialize the Zoho CRM SDK
+    ZOHO.embeddedApp.on("PageLoad", function(data) {
+        populateCalendarHeader(); // Populate the calendar header on page load
+        fetchAndPopulateCalendar();
+    });
 
-ZOHO.embeddedApp.init();
+    ZOHO.embeddedApp.init();
 
-document.getElementById('prevWeek').addEventListener('click', function() {
-    currentDate.setDate(currentDate.getDate() - 7); // Move to the previous week
-    populateCalendarHeader();
-    fetchAndPopulateCalendar();
-});
+    document.getElementById('prevWeek').addEventListener('click', function() {
+        currentDate.setDate(currentDate.getDate() - 7); // Move to the previous week
+        populateCalendarHeader();
+        fetchAndPopulateCalendar();
+    });
 
-document.getElementById('nextWeek').addEventListener('click', function() {
-    currentDate.setDate(currentDate.getDate() + 7); // Move to the next week
-    populateCalendarHeader();
-    fetchAndPopulateCalendar();
-});
+    document.getElementById('nextWeek').addEventListener('click', function() {
+        currentDate.setDate(currentDate.getDate() + 7); // Move to the next week
+        populateCalendarHeader();
+        fetchAndPopulateCalendar();
+    });
 
-document.getElementById('currentWeek').addEventListener('click', function() {
-    currentDate = new Date(today); // Reset to the current week
-    populateCalendarHeader();
-    fetchAndPopulateCalendar();
-});
+    document.getElementById('currentWeek').addEventListener('click', function() {
+        currentDate = new Date(today); // Reset to the current week
+        populateCalendarHeader();
+        fetchAndPopulateCalendar();
+    });
 
-// Close unavailability options when clicking outside
-document.addEventListener('click', function(event) {
-    let options = document.querySelectorAll('.unavailability-options');
-    options.forEach(option => {
-        if (!option.contains(event.target) && !option.previousSibling.contains(event.target)) {
-            option.style.display = 'none';
-        }
+    // Close unavailability options when clicking outside
+    document.addEventListener('click', function(event) {
+        let options = document.querySelectorAll('.unavailability-options');
+        options.forEach(option => {
+            if (!option.contains(event.target) && !event.target.classList.contains('three-dots-button')) {
+                option.style.display = 'none';
+            }
+        });
     });
 });
 
+// Function to insert a record
+function insertTimeOffRecord(tempId, cellDate) {
+    let formattedCellDate = moment(cellDate).format('YYYY-MM-DD');
+    var recordData = {
+        "Name1": tempId,
+        "Unavailability": "All Day",
+        "Unavailable_day": formattedCellDate // Include the specific day here
+    };
+    console.log(recordData);
+
+    ZOHO.CRM.API.insertRecord({ Entity: "Time_Off", APIData: recordData, Trigger: [] })
+    .then(function(data) {
+        console.log("Insert Response: ", data);
+        if (data.data && data.data.length > 0 && data.data[0].code === "SUCCESS") {
+            alert("Record created successfully!");
+        } else {
+            alert("Failed to create record: " + (data.data[0].message || "Unknown error"));
+        }
+    })
+    .catch(function(error) {
+        console.error('Error inserting record:', error);
+        alert('An error occurred while creating the record. Check the console for details.');
+    });
+}
