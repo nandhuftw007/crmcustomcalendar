@@ -75,7 +75,7 @@ function handleThreeDotsButtonClick(event) {
     }
 }
 
-function populateCalendarBody(schedules) {
+function populateCalendarBody(schedules, timeOffRecords) {
     let tbody = document.querySelector('#calendarTable tbody');
     tbody.innerHTML = ""; // Clear any existing rows
 
@@ -151,12 +151,19 @@ function populateCalendarBody(schedules) {
                 }
             });
 
-            let threeDotsButton = createThreeDotsButton();
-            threeDotsButton.addEventListener('click', handleThreeDotsButtonClick);
-            cell.appendChild(threeDotsButton);
+            // Check for unavailability records
+            let unavailabilityRecord = timeOffRecords.find(record => record.Unavailable_day === moment(cellDate).format('YYYY-MM-DD') && record.Name1.id === aggregatedSchedules[tempName].id);
+            if (unavailabilityRecord) {
+                cell.classList.add('unavailable');
+                cell.innerHTML = "Unavailable All Day";
+            } else {
+                let threeDotsButton = createThreeDotsButton();
+                threeDotsButton.addEventListener('click', handleThreeDotsButtonClick);
+                cell.appendChild(threeDotsButton);
 
-            let unavailabilityOptions = createUnavailabilityOptions(aggregatedSchedules[tempName].id, cellDate);
-            cell.appendChild(unavailabilityOptions);
+                let unavailabilityOptions = createUnavailabilityOptions(aggregatedSchedules[tempName].id, cellDate);
+                cell.appendChild(unavailabilityOptions);
+            }
 
             row.appendChild(cell);
         });
@@ -164,7 +171,6 @@ function populateCalendarBody(schedules) {
         tbody.appendChild(row);
     }
 }
-
 
 function fetchAndPopulateCalendar() {
     var conn_name = "crm";
@@ -179,12 +185,63 @@ function fetchAndPopulateCalendar() {
         console.log(response);
         if (response.details && response.details.statusMessage && response.details.statusMessage.data.length > 0) {
             let schedules = response.details.statusMessage.data;
-            populateCalendarBody(schedules);
+            fetchTimeOffRecords(schedules);
         }
     })
     .catch(function(error) {
         console.error('Error invoking Zoho API:', error);
     });
+}
+
+function fetchTimeOffRecords(schedules) {
+    ZOHO.CRM.API.getAllRecords({ Entity: "Time_Off", sort_order: "desc", per_page: 200 })
+    .then(function(response) {
+        console.log("Time Off Records: ", response);
+        if (response.data && response.data.length > 0) {
+            populateCalendarBody(schedules, response.data);
+        } else {
+            populateCalendarBody(schedules, []);
+        }
+    })
+    .catch(function(error) {
+        console.error('Error fetching Time Off records:', error);
+        populateCalendarBody(schedules, []);
+    });
+}
+
+// Function to insert a record
+function insertTimeOffRecord(tempId, cellDate) {
+    let formattedCellDate = moment(cellDate).format('YYYY-MM-DD');
+    var recordData = {
+        "Name1": tempId,
+        "Unavailability": "All Day",
+        "Unavailable_day": formattedCellDate // Include the specific day here
+    };
+    console.log(recordData);
+
+    ZOHO.CRM.API.insertRecord({ Entity: "Time_Off", APIData: recordData, Trigger: [] })
+    .then(function(data) {
+        console.log("Insert Response: ", data);
+        if (data.data && data.data.length > 0 && data.data[0].code === "SUCCESS") {
+            alert("Record created successfully!");
+            updateCellForUnavailability(tempId, cellDate);
+        } else {
+            alert("Failed to create record: " + (data.data[0].message || "Unknown error"));
+        }
+    })
+    .catch(function(error) {
+        console.error('Error inserting record:', error);
+        alert('An error occurred while creating the record. Check the console for details.');
+    });
+}
+
+// Function to update the cell for unavailability
+function updateCellForUnavailability(tempId, cellDate) {
+    let cell = document.querySelector(`td[data-time*='${moment(cellDate).format('MMM D, YYYY')}']`);
+    if (cell) {
+        cell.classList.add('unavailable');
+        cell.innerHTML = "Unavailable All Day";
+    }
 }
 
 $(document).ready(function() {
@@ -224,39 +281,3 @@ $(document).ready(function() {
         });
     });
 });
-
-// Function to insert a record
-// Function to insert a record
-function insertTimeOffRecord(tempId, cellDate) {
-    let formattedCellDate = moment(cellDate).format('YYYY-MM-DD');
-    var recordData = {
-        "Name1": tempId,
-        "Unavailability": "All Day",
-        "Unavailable_day": formattedCellDate // Include the specific day here
-    };
-    console.log(recordData);
-
-    ZOHO.CRM.API.insertRecord({ Entity: "Time_Off", APIData: recordData, Trigger: [] })
-    .then(function(data) {
-        console.log("Insert Response: ", data);
-        if (data.data && data.data.length > 0 && data.data[0].code === "SUCCESS") {
-            alert("Record created successfully!");
-            
-            // Change the background color of the respective cell to red and add text
-            let cell = document.querySelector(`td[data-time*='${moment(cellDate).format('MMM D, YYYY')}']`);
-            if (cell) {
-                cell.classList.add('unavailable');
-                cell.innerHTML = "Unavailable All Day";
-            }
-        } else {
-            alert("Failed to create record: " + (data.data[0].message || "Unknown error"));
-        }
-    })
-    .catch(function(error) {
-        console.error('Error inserting record:', error);
-        alert('An error occurred while creating the record. Check the console for details.');
-    });
-}
-
-
-
