@@ -168,6 +168,12 @@ tbody td {
     background-color: #eee;
 }
 
+.unavailable {
+    background-color: #ffa5a0; 
+    color: #fff;
+}
+
+
 .three-dots-button {
     position: absolute;
     bottom: 10px;
