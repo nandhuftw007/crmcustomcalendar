@@ -226,6 +226,7 @@ $(document).ready(function() {
 });
 
 // Function to insert a record
+// Function to insert a record
 function insertTimeOffRecord(tempId, cellDate) {
     let formattedCellDate = moment(cellDate).format('YYYY-MM-DD');
     var recordData = {
@@ -240,6 +241,13 @@ function insertTimeOffRecord(tempId, cellDate) {
         console.log("Insert Response: ", data);
         if (data.data && data.data.length > 0 && data.data[0].code === "SUCCESS") {
             alert("Record created successfully!");
+            
+            // Change the background color of the respective cell to red and add text
+            let cell = document.querySelector(`td[data-time*='${moment(cellDate).format('MMM D, YYYY')}']`);
+            if (cell) {
+                cell.classList.add('unavailable');
+                cell.innerHTML = "Unavailable All Day";
+            }
         } else {
             alert("Failed to create record: " + (data.data[0].message || "Unknown error"));
         }
@@ -249,3 +257,6 @@ function insertTimeOffRecord(tempId, cellDate) {
         alert('An error occurred while creating the record. Check the console for details.');
     });
 }
+
+
+
