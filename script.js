@@ -109,10 +109,10 @@ function populateCalendarBody(schedules, timeOffRecords) {
     });
 
     for (let tempName in aggregatedSchedules) {
-        let row = document.createElement('tr'); // Declare row variable
+        let row = document.createElement('tr');
         let rowHeader = document.createElement('td');
         rowHeader.className = 'rowHeader';
-        rowHeader.innerText = `${tempName} (${aggregatedSchedules[tempName].id})`; // Display temp ID alongside temp name
+        rowHeader.innerText = `${tempName} (${aggregatedSchedules[tempName].id})`;
         row.appendChild(rowHeader);
 
         let tempSchedules = aggregatedSchedules[tempName].schedules;
@@ -121,68 +121,88 @@ function populateCalendarBody(schedules, timeOffRecords) {
             cell.className = 'cell';
             cell.dataset.time = `${dateString}, ${tempName}`;
             let cellDate = new Date(dateString);
-            cellDate.setHours(0, 0, 0, 0); // Set the time component to the start of the day
+            cellDate.setHours(0, 0, 0, 0);
             let dayOfWeek = getDayOfWeek(cellDate.getDay());
-
-            tempSchedules.forEach(schedule => {
-                if (schedule.Schedule_For_Temp && schedule.Schedule_For_Temp.name && schedule.Schedule_For_Temp.id) {
-                    let jobName = schedule.Job ? schedule.Job.name : "No Job Assigned";
-                    let daysInWeek = schedule.Days_in_the_Week;
-                    let startDateTime = new Date(schedule.Start_Date_and_Work_Start_Time);
-                    let endDateTime = new Date(schedule.End_Date_and_Work_End_Time);
-                    let prevDayDateTime = new Date(startDateTime);
-                    prevDayDateTime.setDate(prevDayDateTime.getDate() - 0);
-                    let selectedDays = [];
-                    if (daysInWeek.includes('Daily')) {
-                        selectedDays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-                    } else if (daysInWeek.includes('Weekdays')) {
-                        selectedDays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
-                    } else {
-                        selectedDays = daysInWeek;
-                    }
-
-                    if (selectedDays.includes(dayOfWeek)) {
-                        if (startDateTime <= cellDate && endDateTime >= cellDate) {
-                            let startTimeString = formatTimeTo12Hour(startDateTime);
-                            let endTimeString = formatTimeTo12Hour(endDateTime);
-                            if (cellDate.toDateString() === startDateTime.toDateString()) {
-                                cell.innerHTML += `<div class="schedule-box"><p>${jobName}</p><p>${startTimeString} - ${endTimeString}</p></div>`;
-                            } else if (cellDate.toDateString() === endDateTime.toDateString()) {
-                                cell.innerHTML += `<div class="schedule-box"><p>${jobName}</p><p>${startTimeString} - ${endTimeString}</p></div>`;
-                            } else if (cellDate > startDateTime && cellDate < endDateTime) {
-                                cell.innerHTML += `<div class="schedule-box"><p>${jobName}</p><p>${startTimeString} - ${endTimeString}</p></div>`;
+        
+            // Check for unavailability records
+            let unavailabilityRecord = timeOffRecords.find(record => {
+                if (record.Unavailability === 'All Day' && record.Unavailable_day === moment(cellDate).format('YYYY-MM-DD') && record.Name1.id === aggregatedSchedules[tempName].id) {
+                    return true;
+                } else if (record.Unavailability === 'Hourly' && moment(record.From_Date_Time).format('YYYY-MM-DD') === moment(cellDate).format('YYYY-MM-DD') && record.Name1.id === aggregatedSchedules[tempName].id) {
+                    return true;
+                }
+                return false;
+            });
+        
+            if (unavailabilityRecord) {
+                if (unavailabilityRecord.Unavailability === 'All Day') {
+                    cell.innerHTML = "Unavailable All Day";
+                    cell.classList.add('unavailable');
+                } else if (unavailabilityRecord.Unavailability === 'Hourly') {
+                    let startTimeString = moment(unavailabilityRecord.From_Date_Time).format('hh:mm a');
+                    let endTimeString = moment(unavailabilityRecord.To_Date).format('hh:mm a');
+                    cell.innerHTML = `Unavailable (${startTimeString} - ${endTimeString})`;
+                    cell.classList.add('unavailable');
+                }
+            } else {
+                // Render schedules
+                let scheduleHtml = '';
+                tempSchedules.forEach(schedule => {
+                    if (schedule.Schedule_For_Temp && schedule.Schedule_For_Temp.name && schedule.Schedule_For_Temp.id) {
+                        let jobName = schedule.Job ? schedule.Job.name : "No Job Assigned";
+                        let daysInWeek = schedule.Days_in_the_Week;
+                        let startDateTime = new Date(schedule.Start_Date_and_Work_Start_Time);
+                        let endDateTime = new Date(schedule.End_Date_and_Work_End_Time);
+                        let prevDayDateTime = new Date(startDateTime);
+                        prevDayDateTime.setDate(prevDayDateTime.getDate() - 0); // Adjust to check previous day
+        
+                        let selectedDays = [];
+                        if (daysInWeek.includes('Daily')) {
+                            selectedDays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+                        } else if (daysInWeek.includes('Weekdays')) {
+                            selectedDays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
+                        } else {
+                            selectedDays = daysInWeek;
+                        }
+        
+                        if (selectedDays.includes(dayOfWeek)) {
+                            if (startDateTime <= cellDate && endDateTime >= cellDate) {
+                                let startTimeString = formatTimeTo12Hour(startDateTime);
+                                let endTimeString = formatTimeTo12Hour(endDateTime);
+                                if (cellDate.toDateString() === startDateTime.toDateString()) {
+                                    scheduleHtml += `<div class="schedule-box"><p>${jobName}</p><p>${startTimeString} - ${endTimeString}</p></div>`;
+                                } else if (cellDate > startDateTime && cellDate < endDateTime) {
+                                    scheduleHtml += `<div class="schedule-box"><p>${jobName}</p><p>${startTimeString} - ${endTimeString}</p></div>`;
+                                }
+                            }
+        
+                            if (cellDate.toDateString() === prevDayDateTime.toDateString()) {
+                                let startTimeString = formatTimeTo12Hour(startDateTime);
+                                let endTimeString = formatTimeTo12Hour(endDateTime);
+                                scheduleHtml += `<div class="schedule-box"><p>${jobName}</p><p>${startTimeString} - ${endTimeString}</p></div>`;
                             }
                         }
-
-                        if (cellDate.toDateString() === prevDayDateTime.toDateString()) {
-                            let startTimeString = formatTimeTo12Hour(startDateTime);
-                            let endTimeString = formatTimeTo12Hour(endDateTime);
-                            cell.innerHTML += `<div class="schedule-box"><p>${jobName}</p><p>${startTimeString} - ${endTimeString}</p></div>`;
-                        }
                     }
-                }
-            });
-
-            // Check for unavailability records
-            let unavailabilityRecord = timeOffRecords.find(record => record.Unavailable_day === moment(cellDate).format('YYYY-MM-DD') && record.Name1.id === aggregatedSchedules[tempName].id);
-            if (unavailabilityRecord) {
-                cell.classList.add('unavailable');
-                cell.innerHTML = "Unavailable All Day";
-            } else {
+                });
+        
+                cell.innerHTML = scheduleHtml;
+        
                 let threeDotsButton = createThreeDotsButton();
                 threeDotsButton.addEventListener('click', handleThreeDotsButtonClick);
                 cell.appendChild(threeDotsButton);
-
+        
                 let unavailabilityOptions = createUnavailabilityOptions(aggregatedSchedules[tempName].id, cellDate);
                 cell.appendChild(unavailabilityOptions);
             }
-
+        
             row.appendChild(cell);
         });
 
         tbody.appendChild(row);
     }
 }
+
+
 
 function fetchAndPopulateCalendar() {
     var conn_name = "crm";
@@ -197,13 +217,20 @@ function fetchAndPopulateCalendar() {
         console.log(response);
         if (response.details && response.details.statusMessage && response.details.statusMessage.data.length > 0) {
             let schedules = response.details.statusMessage.data;
+            console.log("Fetched schedules:", schedules); // Log fetched schedules
             fetchTimeOffRecords(schedules);
+        } else {
+            console.log("No schedules found.");
+            populateCalendarBody([], []); // Populate with empty data
         }
     })
     .catch(function(error) {
         console.error('Error invoking Zoho API:', error);
+        // Handle error case, e.g., display an error message
     });
 }
+
+
 
 function fetchTimeOffRecords(schedules) {
     ZOHO.CRM.API.getAllRecords({ Entity: "Time_Off", sort_order: "desc", per_page: 200 })
@@ -251,55 +278,68 @@ function updateCellForHourlyUnavailability(tempId, cellDate, startTime, endTime)
     let formattedCellDate = moment(cellDate).format('YYYY-MM-DD');
     let formattedStartTime = moment(`${formattedCellDate} ${startTime}`, 'YYYY-MM-DD HH:mm').format('YYYY-MM-DDTHH:mm:ss');
     let formattedEndTime = moment(`${formattedCellDate} ${endTime}`, 'YYYY-MM-DD HH:mm').format('YYYY-MM-DDTHH:mm:ss');
-
+  
     var recordData = {
-        "Name1": tempId,
-        "Unavailability": "Hourly",
-        "From_Date_Time": formattedStartTime,
-        "To_Date": formattedEndTime
+      "Name1": tempId,
+      "Unavailability": "Hourly",
+      "From_Date_Time": formattedStartTime,
+      "To_Date": formattedEndTime
     };
     console.log(recordData);
     ZOHO.CRM.API.insertRecord({ Entity: "Time_Off", APIData: recordData, Trigger: [] })
-        .then(function (data) {
-            console.log("Insert Response: ", data);
-            if (data.data && data.data.length > 0 && data.data[0].code === "SUCCESS") {
-                alert("Hourly Unavailability Record created successfully!");
-                updateCellForUnavailability(tempId, cellDate);
+      .then(function (data) {
+        console.log("Insert Response: ", data);
+        if (data.data && data.data.length > 0 && data.data[0].code === "SUCCESS") {
+          alert("Hourly Unavailability Record created successfully!");
+          updateCellForUnavailability(tempId, cellDate);
+        } else {
+          alert("Failed to create Hourly Unavailability Record: " + (data.data[0].message || "Unknown error"));
+        }
+      })
+      .catch(function (error) {
+        console.error('Error inserting Hourly Unavailability Record:', error);
+        alert('An error occurred while creating the Hourly Unavailability Record. Check the console for details.');
+      });
+  }
+  
+  function updateCellForUnavailability(tempId, cellDate) {
+    let cell = document.querySelector(`td[data-time*='${moment(cellDate).format('MMM D, YYYY')}']`);
+    if (cell) {
+        // Fetch both hourly and all-day unavailability records
+        Promise.all([
+            ZOHO.CRM.API.getRecord({ Entity: "Time_Off", Criteria: `Name1=${tempId} AND Unavailability='Hourly' AND From_Date_Time='${moment(cellDate).format('YYYY-MM-DD')} 00:00:00'` }),
+            ZOHO.CRM.API.getRecord({ Entity: "Time_Off", Criteria: `Name1=${tempId} AND Unavailability='All Day' AND Unavailable_day='${moment(cellDate).format('YYYY-MM-DD')}'` })
+        ])
+        .then(([hourlyResponse, allDayResponse]) => {
+            let hourlyRecord = hourlyResponse.data && hourlyResponse.data.length > 0 ? hourlyResponse.data[0] : null;
+            let allDayRecord = allDayResponse.data && allDayResponse.data.length > 0 ? allDayResponse.data[0] : null;
+
+            if (allDayRecord) {
+                // Display "Unavailable All Day"
+                cell.innerHTML = "Unavailable All Day";
+                cell.classList.add('unavailable'); // Mark the cell as unavailable
+            } else if (hourlyRecord) {
+                // Display "Unavailable (start time - end time)"
+                let startTime = moment(hourlyRecord.From_Date_Time).format('hh:mm a');
+                let endTime = moment(hourlyRecord.To_Date).format('hh:mm a');
+                cell.innerHTML = `Unavailable (${startTime} - ${endTime})`;
+                cell.classList.add('unavailable'); // Mark the cell as unavailable
             } else {
-                alert("Failed to create Hourly Unavailability Record: " + (data.data[0].message || "Unknown error"));
+                // Clear the cell if no unavailability records found
+                cell.innerHTML = "";
+                cell.classList.remove('unavailable');
             }
         })
-        .catch(function (error) {
-            console.error('Error inserting Hourly Unavailability Record:', error);
-            alert('An error occurred while creating the Hourly Unavailability Record. Check the console for details.');
+        .catch(error => {
+            console.error('Error fetching unavailability records:', error);
+            cell.innerHTML = ""; // Clear the cell on error
+            cell.classList.remove('unavailable');
         });
+    }
 }
 
 
 
-// Function to update the cell for unavailability
-function updateCellForUnavailability(tempId, cellDate) {
-    let cell = document.querySelector(`td[data-time*='${moment(cellDate).format('MMM D, YYYY')}']`);
-    if (cell) {
-      cell.classList.add('unavailable');
-      // Fetch the hourly unavailability record
-      ZOHO.CRM.API.getRecord({ Entity: "Time_Off", Criteria: `Name1=${tempId} AND Unavailability='Hourly' AND From_Date_Time=${moment(cellDate).format('YYYY-MM-DDTHH:mm:ss')}` })
-        .then(response => {
-          if (response.data && response.data.length > 0) {
-            const record = response.data[0];
-            const startTime = moment(record.From_Date_Time).format('hh:mm a');
-            const endTime = moment(record.To_Date).format('hh:mm a');
-            cell.innerHTML = `Unavailable (${startTime} - ${endTime})`;
-          } else {
-            cell.innerHTML = "Unavailable All Day";
-          }
-        })
-        .catch(error => {
-          console.error('Error fetching hourly unavailability record:', error);
-          cell.innerHTML = "Unavailable All Day";
-        });
-    }
-  }
 
 // Function to handle hourly unavailability
 function markUnavailableHourly(tempId, cellDate) {
@@ -334,34 +374,29 @@ function markUnavailableHourly(tempId, cellDate) {
     }
   }
 
-$(document).ready(function() {
+  $(document).ready(function() {
     // Initialize the Zoho CRM SDK
     ZOHO.embeddedApp.on("PageLoad", function(data) {
-        populateCalendarHeader(); // Populate the calendar header on page load
+        populateCalendarHeader();
         fetchAndPopulateCalendar();
     });
 
     ZOHO.embeddedApp.init();
 
     document.getElementById('prevWeek').addEventListener('click', function() {
-        currentDate.setDate(currentDate.getDate() - 7); // Move to the previous week
+        currentDate.setDate(currentDate.getDate() - 7);
         populateCalendarHeader();
         fetchAndPopulateCalendar();
     });
 
     document.getElementById('nextWeek').addEventListener('click', function() {
-        currentDate.setDate(currentDate.getDate() + 7); // Move to the next week
+        currentDate.setDate(currentDate.getDate() + 7);
         populateCalendarHeader();
         fetchAndPopulateCalendar();
     });
 
     document.getElementById('currentWeek').addEventListener('click', function() {
-        currentDate = new Date(today); // Reset to the current week
-        populateCalendarHeader();
-        fetchAndPopulateCalendar();
-    });
-
-    document.addEventListener('DOMContentLoaded', function() {
+        currentDate = new Date(today);
         populateCalendarHeader();
         fetchAndPopulateCalendar();
     });
