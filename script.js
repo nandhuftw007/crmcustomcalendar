@@ -345,31 +345,34 @@ function updateCellForHourlyUnavailability(tempId, cellDate, startTime, endTime)
 function markUnavailableHourly(tempId, cellDate) {
     const cell = document.querySelector(`td[data-time*='${moment(cellDate).format('MMM D, YYYY')}']`);
     if (cell) {
-      // Create a modal or popup within the cell
-      const modal = document.createElement('div');
-      modal.className = 'hourly-unavailability-modal';
-      modal.innerHTML = `
-        <label>Start Time:</label>
-        <input type="time" id="start-time" />
-        <br />
-        <label>End Time:</label>
-        <input type="time" id="end-time" />
-        <br />
-        <button id="save-hourly-unavailability">Save</button>
+      // Create a small popup
+      const popup = document.createElement('div');
+      popup.className = 'hourly-unavailability-popup';
+      popup.innerHTML = `
+        <input type="date" id="unavailable-date" value="${moment(cellDate).format('YYYY-MM-DD')}">
+        <input type="time" id="unavailable-start-time">
+        <input type="time" id="unavailable-end-time">
+        <button id="save-hourly-unavailability" style="font-size: 12px;">Save</button>
+        <button id="cancel-hourly-unavailability" style="font-size: 12px;">Cancel</button>
       `;
-      cell.appendChild(modal);
+      cell.appendChild(popup);
   
-      // Add event listener to the save button
+      // Add event listeners
       document.getElementById('save-hourly-unavailability').addEventListener('click', () => {
-        const startTime = document.getElementById('start-time').value;
-        const endTime = document.getElementById('end-time').value;
+        const date = document.getElementById('unavailable-date').value;
+        const startTime = document.getElementById('unavailable-start-time').value;
+        const endTime = document.getElementById('unavailable-end-time').value;
   
-        if (startTime && endTime) {
+        if (date && startTime && endTime) {
           updateCellForHourlyUnavailability(tempId, cellDate, startTime, endTime);
-          modal.remove(); // Remove the modal
+          popup.remove(); // Remove the popup
         } else {
-          console.error('Start time and end time are required.');
+          console.error('All fields are required.');
         }
+      });
+  
+      document.getElementById('cancel-hourly-unavailability').addEventListener('click', () => {
+        popup.remove(); // Remove the popup
       });
     }
   }
