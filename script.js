@@ -54,6 +54,7 @@ function createUnavailabilityOptions(tempId, cellDate) {
     let options = document.createElement('div');
     options.className = 'unavailability-options';
     options.style.display = 'none';
+
     let allDayButton = document.createElement('button');
     allDayButton.innerText = 'Mark Unavailable (All Day)';
     allDayButton.dataset.tempId = tempId;
@@ -63,6 +64,17 @@ function createUnavailabilityOptions(tempId, cellDate) {
         options.style.display = 'none';
     });
     options.appendChild(allDayButton);
+
+    let hourlyButton = document.createElement('button');
+    hourlyButton.innerText = 'Mark Unavailable (Hourly)';
+    hourlyButton.dataset.tempId = tempId;
+    hourlyButton.dataset.cellDate = cellDate;
+    hourlyButton.addEventListener('click', function() {
+        markUnavailableHourly(this.dataset.tempId, this.dataset.cellDate);
+        options.style.display = 'none';
+    });
+    options.appendChild(hourlyButton);
+
     return options;
 }
 
@@ -235,6 +247,36 @@ function insertTimeOffRecord(tempId, cellDate) {
     });
 }
 
+function updateCellForHourlyUnavailability(tempId, cellDate, startTime, endTime) {
+    let formattedCellDate = moment(cellDate).format('YYYY-MM-DD');
+    let formattedStartTime = moment(`${formattedCellDate} ${startTime}`, 'YYYY-MM-DD HH:mm').format('YYYY-MM-DDTHH:mm:ss');
+    let formattedEndTime = moment(`${formattedCellDate} ${endTime}`, 'YYYY-MM-DD HH:mm').format('YYYY-MM-DDTHH:mm:ss');
+
+    var recordData = {
+        "Name1": tempId,
+        "Unavailability": "Hourly",
+        "From_Date_Time": formattedStartTime,
+        "To_Date": formattedEndTime
+    };
+    console.log(recordData);
+    ZOHO.CRM.API.insertRecord({ Entity: "Time_Off", APIData: recordData, Trigger: [] })
+        .then(function (data) {
+            console.log("Insert Response: ", data);
+            if (data.data && data.data.length > 0 && data.data[0].code === "SUCCESS") {
+                alert("Hourly Unavailability Record created successfully!");
+                updateCellForUnavailability(tempId, cellDate);
+            } else {
+                alert("Failed to create Hourly Unavailability Record: " + (data.data[0].message || "Unknown error"));
+            }
+        })
+        .catch(function (error) {
+            console.error('Error inserting Hourly Unavailability Record:', error);
+            alert('An error occurred while creating the Hourly Unavailability Record. Check the console for details.');
+        });
+}
+
+
+
 // Function to update the cell for unavailability
 function updateCellForUnavailability(tempId, cellDate) {
     let cell = document.querySelector(`td[data-time*='${moment(cellDate).format('MMM D, YYYY')}']`);
@@ -243,6 +285,39 @@ function updateCellForUnavailability(tempId, cellDate) {
         cell.innerHTML = "Unavailable All Day";
     }
 }
+
+// Function to handle hourly unavailability
+function markUnavailableHourly(tempId, cellDate) {
+    const cell = document.querySelector(`td[data-time*='${moment(cellDate).format('MMM D, YYYY')}']`);
+    if (cell) {
+      // Create a modal or popup within the cell
+      const modal = document.createElement('div');
+      modal.className = 'hourly-unavailability-modal';
+      modal.innerHTML = `
+        <label>Start Time:</label>
+        <input type="time" id="start-time" />
+        <br />
+        <label>End Time:</label>
+        <input type="time" id="end-time" />
+        <br />
+        <button id="save-hourly-unavailability">Save</button>
+      `;
+      cell.appendChild(modal);
+  
+      // Add event listener to the save button
+      document.getElementById('save-hourly-unavailability').addEventListener('click', () => {
+        const startTime = document.getElementById('start-time').value;
+        const endTime = document.getElementById('end-time').value;
+  
+        if (startTime && endTime) {
+          updateCellForHourlyUnavailability(tempId, cellDate, startTime, endTime);
+          modal.remove(); // Remove the modal
+        } else {
+          console.error('Start time and end time are required.');
+        }
+      });
+    }
+  }
 
 $(document).ready(function() {
     // Initialize the Zoho CRM SDK
@@ -267,6 +342,11 @@ $(document).ready(function() {
 
     document.getElementById('currentWeek').addEventListener('click', function() {
         currentDate = new Date(today); // Reset to the current week
+        populateCalendarHeader();
+        fetchAndPopulateCalendar();
+    });
+
+    document.addEventListener('DOMContentLoaded', function() {
         populateCalendarHeader();
         fetchAndPopulateCalendar();
     });
