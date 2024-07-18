@@ -281,10 +281,25 @@ function updateCellForHourlyUnavailability(tempId, cellDate, startTime, endTime)
 function updateCellForUnavailability(tempId, cellDate) {
     let cell = document.querySelector(`td[data-time*='${moment(cellDate).format('MMM D, YYYY')}']`);
     if (cell) {
-        cell.classList.add('unavailable');
-        cell.innerHTML = "Unavailable All Day";
+      cell.classList.add('unavailable');
+      // Fetch the hourly unavailability record
+      ZOHO.CRM.API.getRecord({ Entity: "Time_Off", Criteria: `Name1=${tempId} AND Unavailability='Hourly' AND From_Date_Time=${moment(cellDate).format('YYYY-MM-DDTHH:mm:ss')}` })
+        .then(response => {
+          if (response.data && response.data.length > 0) {
+            const record = response.data[0];
+            const startTime = moment(record.From_Date_Time).format('hh:mm a');
+            const endTime = moment(record.To_Date).format('hh:mm a');
+            cell.innerHTML = `Unavailable (${startTime} - ${endTime})`;
+          } else {
+            cell.innerHTML = "Unavailable All Day";
+          }
+        })
+        .catch(error => {
+          console.error('Error fetching hourly unavailability record:', error);
+          cell.innerHTML = "Unavailable All Day";
+        });
     }
-}
+  }
 
 // Function to handle hourly unavailability
 function markUnavailableHourly(tempId, cellDate) {
