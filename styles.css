@@ -170,9 +170,8 @@ tbody td {
 
 .unavailable {
     background-color: #ffa5a0; 
-    color: #fff;
+    color: #000000;
 }
-
 
 .three-dots-button {
     position: absolute;
