@@ -270,6 +270,17 @@ function fetchTimeOffRecords(schedules) {
     });
 }
 
+
+function updateCellForUnavailability(tempId, cellDate) {
+    // Update the calendar cell directly
+    let cell = document.querySelector(`td[data-time*='${moment(cellDate).format('MMM D, YYYY')}']`);
+    if (cell) {
+        cell.innerHTML = "Unavailable All Day";
+        cell.classList.add('unavailable'); // Mark the cell as unavailable
+    }
+}
+
+
 // Function to insert a record
 function insertTimeOffRecord(tempId, cellDate) {
     let formattedCellDate = moment(cellDate).format('YYYY-MM-DD');
