@@ -374,6 +374,13 @@ function markUnavailableHourly(tempId, cellDate) {
       document.getElementById('cancel-hourly-unavailability').addEventListener('click', () => {
         popup.remove(); // Remove the popup
       });
+  
+      // Add event listener to popup to listen for clicks outside
+      document.addEventListener('click', (event) => {
+        if (!popup.contains(event.target) && !event.target === popup) {
+          popup.remove(); // Remove the popup if clicked outside
+        }
+      });
     }
   }
 
