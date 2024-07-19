@@ -75,6 +75,17 @@ function createUnavailabilityOptions(tempId, cellDate) {
     });
     options.appendChild(hourlyButton);
 
+    let addScheduleButton = document.createElement('button');
+    addScheduleButton.innerText = 'Add Schedule';
+    addScheduleButton.dataset.tempId = tempId;
+    addScheduleButton.dataset.cellDate = cellDate;
+    addScheduleButton.addEventListener('click', function() {
+        // Implement your add schedule logic here
+        alert(`Add schedule for Temp ID: ${this.dataset.tempId} on ${this.dataset.cellDate}`);
+        options.style.display = 'none';
+    });
+    options.appendChild(addScheduleButton);
+
     return options;
 }
 
@@ -123,7 +134,7 @@ function populateCalendarBody(schedules, timeOffRecords) {
             let cellDate = new Date(dateString);
             cellDate.setHours(0, 0, 0, 0);
             let dayOfWeek = getDayOfWeek(cellDate.getDay());
-        
+
             // Check for unavailability records
             let unavailabilityRecord = timeOffRecords.find(record => {
                 if (record.Unavailability === 'All Day' && record.Unavailable_day === moment(cellDate).format('YYYY-MM-DD') && record.Name1.id === aggregatedSchedules[tempName].id) {
@@ -133,7 +144,7 @@ function populateCalendarBody(schedules, timeOffRecords) {
                 }
                 return false;
             });
-        
+
             if (unavailabilityRecord) {
                 if (unavailabilityRecord.Unavailability === 'All Day') {
                     cell.innerHTML = "Unavailable All Day";
@@ -155,7 +166,7 @@ function populateCalendarBody(schedules, timeOffRecords) {
                         let endDateTime = new Date(schedule.End_Date_and_Work_End_Time);
                         let prevDayDateTime = new Date(startDateTime);
                         prevDayDateTime.setDate(prevDayDateTime.getDate() - 0); // Adjust to check previous day
-        
+
                         let selectedDays = [];
                         if (daysInWeek.includes('Daily')) {
                             selectedDays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
@@ -164,7 +175,7 @@ function populateCalendarBody(schedules, timeOffRecords) {
                         } else {
                             selectedDays = daysInWeek;
                         }
-        
+
                         if (selectedDays.includes(dayOfWeek)) {
                             if (startDateTime <= cellDate && endDateTime >= cellDate) {
                                 let startTimeString = formatTimeTo12Hour(startDateTime);
@@ -175,7 +186,7 @@ function populateCalendarBody(schedules, timeOffRecords) {
                                     scheduleHtml += `<div class="schedule-box"><p>${jobName}</p><p>${startTimeString} - ${endTimeString}</p></div>`;
                                 }
                             }
-        
+
                             if (cellDate.toDateString() === prevDayDateTime.toDateString()) {
                                 let startTimeString = formatTimeTo12Hour(startDateTime);
                                 let endTimeString = formatTimeTo12Hour(endDateTime);
@@ -184,17 +195,28 @@ function populateCalendarBody(schedules, timeOffRecords) {
                         }
                     }
                 });
-        
+
                 cell.innerHTML = scheduleHtml;
-        
+
+                if (scheduleHtml === '') {
+                    // Add plus button if no schedule
+                    let plusButton = document.createElement('button');
+                    plusButton.className = 'plus-button';
+                    plusButton.innerText = '+';
+                    plusButton.addEventListener('click', function() {
+                        alert(`Add schedule for Temp ID: ${aggregatedSchedules[tempName].id} on ${cellDate}`);
+                    });
+                    cell.appendChild(plusButton);
+                }
+
                 let threeDotsButton = createThreeDotsButton();
                 threeDotsButton.addEventListener('click', handleThreeDotsButtonClick);
                 cell.appendChild(threeDotsButton);
-        
+
                 let unavailabilityOptions = createUnavailabilityOptions(aggregatedSchedules[tempName].id, cellDate);
                 cell.appendChild(unavailabilityOptions);
             }
-        
+
             row.appendChild(cell);
         });
 
