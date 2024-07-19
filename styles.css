@@ -260,7 +260,30 @@ tbody td {
     background-color: #3e8e41;
   }
 
-
+  .cell {
+    position: relative; /* add this to create a containing block for the plus button */
+  }
+  
+  .plus-button {
+    position: absolute; /* position the plus button absolutely */
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 18px;
+    font-weight: bold;
+    color: #337ab7; /* blue color */
+    background-color: #f7f7f7; /* light gray background */
+    border: none;
+    border-radius: 50%;
+    padding: 6px 10px;
+    cursor: pointer;
+    opacity: 0; /* hide the plus button by default */
+    transition: opacity 0.2s; /* add a transition effect */
+  }
+  
+  .cell:hover .plus-button {
+    opacity: 1; /* show the plus button on hover */
+  }
 
 
 /* Responsive adjustments */
