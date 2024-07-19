@@ -302,41 +302,41 @@ function updateCellForHourlyUnavailability(tempId, cellDate, startTime, endTime)
       });
   }
   
-  function updateCellForUnavailability(tempId, cellDate) {
-    let cell = document.querySelector(`td[data-time*='${moment(cellDate).format('MMM D, YYYY')}']`);
-    if (cell) {
-        // Fetch both hourly and all-day unavailability records
-        Promise.all([
-            ZOHO.CRM.API.getRecord({ Entity: "Time_Off", Criteria: `Name1=${tempId} AND Unavailability='Hourly' AND From_Date_Time='${moment(cellDate).format('YYYY-MM-DD')} 00:00:00'` }),
-            ZOHO.CRM.API.getRecord({ Entity: "Time_Off", Criteria: `Name1=${tempId} AND Unavailability='All Day' AND Unavailable_day='${moment(cellDate).format('YYYY-MM-DD')}'` })
-        ])
-        .then(([hourlyResponse, allDayResponse]) => {
-            let hourlyRecord = hourlyResponse.data && hourlyResponse.data.length > 0 ? hourlyResponse.data[0] : null;
-            let allDayRecord = allDayResponse.data && allDayResponse.data.length > 0 ? allDayResponse.data[0] : null;
+  function updateCellForHourlyUnavailability(tempId, cellDate, startTime, endTime) {
+    let formattedCellDate = moment(cellDate).format('YYYY-MM-DD');
+    let formattedStartTime = moment(`${formattedCellDate} ${startTime}`, 'YYYY-MM-DD HH:mm').format('YYYY-MM-DDTHH:mm:ss');
+    let formattedEndTime = moment(`${formattedCellDate} ${endTime}`, 'YYYY-MM-DD HH:mm').format('YYYY-MM-DDTHH:mm:ss');
 
-            if (allDayRecord) {
-                // Display "Unavailable All Day"
-                cell.innerHTML = "Unavailable All Day";
-                cell.classList.add('unavailable'); // Mark the cell as unavailable
-            } else if (hourlyRecord) {
-                // Display "Unavailable (start time - end time)"
-                let startTime = moment(hourlyRecord.From_Date_Time).format('hh:mm a');
-                let endTime = moment(hourlyRecord.To_Date).format('hh:mm a');
-                cell.innerHTML = `Unavailable (${startTime} - ${endTime})`;
-                cell.classList.add('unavailable'); // Mark the cell as unavailable
+    var recordData = {
+        "Name1": tempId,
+        "Unavailability": "Hourly",
+        "From_Date_Time": formattedStartTime,
+        "To_Date": formattedEndTime
+    };
+
+    ZOHO.CRM.API.insertRecord({ Entity: "Time_Off", APIData: recordData, Trigger: [] })
+        .then(function(data) {
+            console.log("Insert Response: ", data);
+            if (data.data && data.data.length > 0 && data.data[0].code === "SUCCESS") {
+                alert("Hourly Unavailability Record created successfully!");
+
+                // Update the calendar cell directly
+                let cell = document.querySelector(`td[data-time*='${moment(cellDate).format('MMM D, YYYY')}']`);
+                if (cell) {
+                    cell.innerHTML = `Unavailable (${startTime} - ${endTime})`;
+                    cell.classList.add('unavailable'); // Mark the cell as unavailable
+                }
             } else {
-                // Clear the cell if no unavailability records found
-                cell.innerHTML = "";
-                cell.classList.remove('unavailable');
+                alert("Failed to create Hourly Unavailability Record: " + (data.data[0].message || "Unknown error"));
             }
         })
-        .catch(error => {
-            console.error('Error fetching unavailability records:', error);
-            cell.innerHTML = ""; // Clear the cell on error
-            cell.classList.remove('unavailable');
+        .catch(function(error) {
+            console.error('Error inserting Hourly Unavailability Record:', error);
+            alert('An error occurred while creating the Hourly Unavailability Record. Check the console for details.');
         });
-    }
 }
+
+
 
 
 
