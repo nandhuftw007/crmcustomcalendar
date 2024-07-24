@@ -98,7 +98,7 @@ function handleThreeDotsButtonClick(event) {
     }
 }
 
-function populateCalendarBody(schedules, timeOffRecords) {
+function populateCalendarBody(leads, schedules, timeOffRecords) {
     let tbody = document.querySelector('#calendarTable tbody');
     tbody.innerHTML = ""; // Clear any existing rows
 
@@ -107,39 +107,26 @@ function populateCalendarBody(schedules, timeOffRecords) {
     const weekEndDate = new Date(weekDates[weekDates.length - 1]);
     weekEndDate.setHours(23, 59, 59, 999); // Set the end date to the last millisecond of the day
 
-    let aggregatedSchedules = {};
-    schedules.forEach(schedule => {
-        if (schedule.Schedule_For_Temp && schedule.Schedule_For_Temp.name && schedule.Schedule_For_Temp.id) {
-            let tempName = schedule.Schedule_For_Temp.name;
-            let tempId = schedule.Schedule_For_Temp.id;
-            if (!aggregatedSchedules[tempName]) {
-                aggregatedSchedules[tempName] = { id: tempId, schedules: [] };
-            }
-            aggregatedSchedules[tempName].schedules.push(schedule);
-        }
-    });
-
-    for (let tempName in aggregatedSchedules) {
+    leads.forEach(lead => {
         let row = document.createElement('tr');
         let rowHeader = document.createElement('td');
         rowHeader.className = 'rowHeader';
-        rowHeader.innerText = `${tempName} (${aggregatedSchedules[tempName].id})`;
+        rowHeader.innerText = `${lead.First_Name} ${lead.Last_Name} (${lead.id})`;
         row.appendChild(rowHeader);
 
-        let tempSchedules = aggregatedSchedules[tempName].schedules;
         weekDates.forEach(dateString => {
             let cell = document.createElement('td');
             cell.className = 'cell';
-            cell.dataset.time = `${dateString}, ${tempName}`;
+            cell.dataset.time = `${dateString}, ${lead.First_Name} ${lead.Last_Name}`;
             let cellDate = new Date(dateString);
             cellDate.setHours(0, 0, 0, 0);
             let dayOfWeek = getDayOfWeek(cellDate.getDay());
 
             // Check for unavailability records
             let unavailabilityRecord = timeOffRecords.find(record => {
-                if (record.Unavailability === 'All Day' && record.Unavailable_day === moment(cellDate).format('YYYY-MM-DD') && record.Name1.id === aggregatedSchedules[tempName].id) {
+                if (record.Unavailability === 'All Day' && record.Unavailable_day === moment(cellDate).format('YYYY-MM-DD') && record.Name1.id === lead.id) {
                     return true;
-                } else if (record.Unavailability === 'Hourly' && moment(record.From_Date_Time).format('YYYY-MM-DD') === moment(cellDate).format('YYYY-MM-DD') && record.Name1.id === aggregatedSchedules[tempName].id) {
+                } else if (record.Unavailability === 'Hourly' && moment(record.From_Date_Time).format('YYYY-MM-DD') === moment(cellDate).format('YYYY-MM-DD') && record.Name1.id === lead.id) {
                     return true;
                 }
                 return false;
@@ -158,8 +145,8 @@ function populateCalendarBody(schedules, timeOffRecords) {
             } else {
                 // Render schedules
                 let scheduleHtml = '';
-                tempSchedules.forEach(schedule => {
-                    if (schedule.Schedule_For_Temp && schedule.Schedule_For_Temp.name && schedule.Schedule_For_Temp.id) {
+                schedules.forEach(schedule => {
+                    if (schedule.Schedule_For_Temp && schedule.Schedule_For_Temp.id === lead.id) {
                         let jobName = schedule.Job ? schedule.Job.name : "No Job Assigned";
                         let daysInWeek = schedule.Days_in_the_Week;
                         let startDateTime = new Date(schedule.Start_Date_and_Work_Start_Time);
@@ -204,7 +191,7 @@ function populateCalendarBody(schedules, timeOffRecords) {
                     plusButton.className = 'plus-button';
                     plusButton.innerText = '+';
                     plusButton.addEventListener('click', function() {
-                        alert(`Add schedule for Temp ID: ${aggregatedSchedules[tempName].id} on ${cellDate}`);
+                        alert(`Add schedule for Temp ID: ${lead.id} on ${cellDate}`);
                     });
                     cell.appendChild(plusButton);
                 }
@@ -213,7 +200,7 @@ function populateCalendarBody(schedules, timeOffRecords) {
                 threeDotsButton.addEventListener('click', handleThreeDotsButtonClick);
                 cell.appendChild(threeDotsButton);
 
-                let unavailabilityOptions = createUnavailabilityOptions(aggregatedSchedules[tempName].id, cellDate);
+                let unavailabilityOptions = createUnavailabilityOptions(lead.id, cellDate);
                 cell.appendChild(unavailabilityOptions);
             }
 
@@ -221,160 +208,90 @@ function populateCalendarBody(schedules, timeOffRecords) {
         });
 
         tbody.appendChild(row);
-    }
+    });
 }
-
-
 
 function fetchAndPopulateCalendar() {
-    var conn_name = "crm";
-    var req_data = {
-        "method": "GET",
-        "url": "https://www.zohoapis.com/crm/v2/Shift_Schedule",
-        "param_type": 1
-    };
-
-    ZOHO.CRM.CONNECTION.invoke(conn_name, req_data)
-    .then(function(response) {
-        console.log(response);
-        if (response.details && response.details.statusMessage && response.details.statusMessage.data.length > 0) {
-            let schedules = response.details.statusMessage.data;
-            console.log("Fetched schedules:", schedules); // Log fetched schedules
-            fetchTimeOffRecords(schedules);
-        } else {
-            console.log("No schedules found.");
-            populateCalendarBody([], []); // Populate with empty data
-        }
-    })
-    .catch(function(error) {
-        console.error('Error invoking Zoho API:', error);
-        // Handle error case, e.g., display an error message
-    });
-}
-
-
-
-function fetchTimeOffRecords(schedules) {
-    ZOHO.CRM.API.getAllRecords({ Entity: "Time_Off", sort_order: "desc", per_page: 200 })
-    .then(function(response) {
-        console.log("Time Off Records: ", response);
-        if (response.data && response.data.length > 0) {
-            populateCalendarBody(schedules, response.data);
-        } else {
-            populateCalendarBody(schedules, []);
-        }
-    })
-    .catch(function(error) {
-        console.error('Error fetching Time Off records:', error);
-        populateCalendarBody(schedules, []);
-    });
-}
-
-
-function updateCellForUnavailability(tempId, cellDate) {
-    // Update the calendar cell directly
-    let cell = document.querySelector(`td[data-time*='${moment(cellDate).format('MMM D, YYYY')}']`);
-    if (cell) {
-        cell.innerHTML = "Unavailable All Day";
-        cell.classList.add('unavailable'); // Mark the cell as unavailable
-    }
-}
-
-
-// Function to insert a record
-function insertTimeOffRecord(tempId, cellDate) {
-    let formattedCellDate = moment(cellDate).format('YYYY-MM-DD');
-    var recordData = {
-        "Name1": tempId,
-        "Unavailability": "All Day",
-        "Unavailable_day": formattedCellDate // Include the specific day here
-    };
-    console.log(recordData);
-
-    ZOHO.CRM.API.insertRecord({ Entity: "Time_Off", APIData: recordData, Trigger: [] })
-    .then(function(data) {
-        console.log("Insert Response: ", data);
-        if (data.data && data.data.length > 0 && data.data[0].code === "SUCCESS") {
-            alert("Record created successfully!");
-            updateCellForUnavailability(tempId, cellDate);
-        } else {
-            alert("Failed to create record: " + (data.data[0].message || "Unknown error"));
-        }
-    })
-    .catch(function(error) {
-        console.error('Error inserting record:', error);
-        alert('An error occurred while creating the record. Check the console for details.');
-    });
-}
-
-function updateCellForHourlyUnavailability(tempId, cellDate, startTime, endTime) {
-    let formattedCellDate = moment(cellDate).format('YYYY-MM-DD');
-    let formattedStartTime = moment(`${formattedCellDate} ${startTime}`, 'YYYY-MM-DD HH:mm').format('YYYY-MM-DDTHH:mm:ss');
-    let formattedEndTime = moment(`${formattedCellDate} ${endTime}`, 'YYYY-MM-DD HH:mm').format('YYYY-MM-DDTHH:mm:ss');
-  
-    var recordData = {
-      "Name1": tempId,
-      "Unavailability": "Hourly",
-      "From_Date_Time": formattedStartTime,
-      "To_Date": formattedEndTime
-    };
-    console.log(recordData);
-    ZOHO.CRM.API.insertRecord({ Entity: "Time_Off", APIData: recordData, Trigger: [] })
-      .then(function (data) {
-        console.log("Insert Response: ", data);
-        if (data.data && data.data.length > 0 && data.data[0].code === "SUCCESS") {
-          alert("Hourly Unavailability Record created successfully!");
-          updateCellForUnavailability(tempId, cellDate);
-        } else {
-          alert("Failed to create Hourly Unavailability Record: " + (data.data[0].message || "Unknown error"));
-        }
-      })
-      .catch(function (error) {
-        console.error('Error inserting Hourly Unavailability Record:', error);
-        alert('An error occurred while creating the Hourly Unavailability Record. Check the console for details.');
-      });
-  }
-  
-  function updateCellForHourlyUnavailability(tempId, cellDate, startTime, endTime) {
-    let formattedCellDate = moment(cellDate).format('YYYY-MM-DD');
-    let formattedStartTime = moment(`${formattedCellDate} ${startTime}`, 'YYYY-MM-DD HH:mm').format('YYYY-MM-DDTHH:mm:ss');
-    let formattedEndTime = moment(`${formattedCellDate} ${endTime}`, 'YYYY-MM-DD HH:mm').format('YYYY-MM-DDTHH:mm:ss');
-
-    var recordData = {
-        "Name1": tempId,
-        "Unavailability": "Hourly",
-        "From_Date_Time": formattedStartTime,
-        "To_Date": formattedEndTime
-    };
-
-    ZOHO.CRM.API.insertRecord({ Entity: "Time_Off", APIData: recordData, Trigger: [] })
-        .then(function(data) {
-            console.log("Insert Response: ", data);
-            if (data.data && data.data.length > 0 && data.data[0].code === "SUCCESS") {
-                alert("Hourly Unavailability Record created successfully!");
-
-                // Update the calendar cell directly
-                let cell = document.querySelector(`td[data-time*='${moment(cellDate).format('MMM D, YYYY')}']`);
-                if (cell) {
-                    cell.innerHTML = `Unavailable (${startTime} - ${endTime})`;
-                    cell.classList.add('unavailable'); // Mark the cell as unavailable
-                }
+    ZOHO.CRM.API.getAllRecords({ Entity: "Leads", sort_order: "desc", per_page: 200 })
+        .then(function(response) {
+            if (response.data && response.data.length > 0) {
+                const leads = response.data.map(lead => ({
+                    id: lead.id,
+                    First_Name: lead.First_Name,
+                    Last_Name: lead.Last_Name
+                }));
+                fetchAndPopulateSchedulesAndTimeOff(leads);
             } else {
-                alert("Failed to create Hourly Unavailability Record: " + (data.data[0].message || "Unknown error"));
+                console.log("No leads found.");
+                populateCalendarBody([], [], []);
             }
         })
         .catch(function(error) {
-            console.error('Error inserting Hourly Unavailability Record:', error);
-            alert('An error occurred while creating the Hourly Unavailability Record. Check the console for details.');
+            console.error('Error fetching leads:', error);
+            populateCalendarBody([], [], []);
         });
 }
 
+function fetchAndPopulateSchedulesAndTimeOff(leads) {
+    const weekDates = getWeekDates(new Date(currentDate));
+    const weekStartDate = moment(weekDates[0], 'MMM D, YYYY').format('YYYY-MM-DD');
+    const weekEndDate = moment(weekDates[6], 'MMM D, YYYY').format('YYYY-MM-DD');
 
+    const leadIds = leads.map(lead => lead.id);
+    const leadIdsString = leadIds.join(",");
 
+    const schedulePromise = ZOHO.CRM.API.getAllRecords({
+        Entity: "Shift_Schedule",
+        Criteria: `(Schedule_For_Temp:equals:${leadIdsString}) AND (Start_Date_and_Work_Start_Time:between:${weekStartDate}T00:00:00.000Z and ${weekEndDate}T23:59:59.999Z)`
+    });
 
+    const timeOffPromise = ZOHO.CRM.API.getAllRecords({
+        Entity: "Time_Off",
+        Criteria: `(Name1:equals:${leadIdsString}) AND ((From_Date_Time:between:${weekStartDate}T00:00:00.000Z and ${weekEndDate}T23:59:59.999Z) OR (Unavailable_day:between:${weekStartDate} and ${weekEndDate}))`
+    });
 
+    console.log('Fetching schedules and time-off records...');
 
-// Function to handle hourly unavailability
+    Promise.all([schedulePromise, timeOffPromise])
+        .then(function([schedulesResponse, timeOffResponse]) {
+            console.log('Schedules response:', schedulesResponse);
+            console.log('Time-off response:', timeOffResponse);
+
+            const schedules = schedulesResponse.data || [];
+            const timeOffRecords = timeOffResponse.data || [];
+
+            console.log('Schedules:', schedules);
+            console.log('Time-off records:', timeOffRecords);
+
+            populateCalendarBody(leads, schedules, timeOffRecords);
+        })
+        .catch(function(error) {
+            console.error('Error fetching schedules or time-off records:', error);
+            populateCalendarBody(leads, [], []);
+        });
+}
+
+function insertTimeOffRecord(tempId, cellDate) {
+    const timeOffRecord = {
+        "Name1": { "id": tempId },
+        "Unavailable_day": moment(cellDate).format('YYYY-MM-DD'),
+        "Unavailability": "All Day"
+    };
+
+    ZOHO.CRM.API.insertRecord({ Entity: "Time_Off", APIData: timeOffRecord })
+        .then(function(response) {
+            if (response.data && response.data.length > 0 && response.data[0].code === "SUCCESS") {
+                console.log('Time off record inserted successfully:', response.data);
+                fetchAndPopulateCalendar(); // Refresh the calendar to show the updated data
+            } else {
+                console.error('Error inserting time off record:', response.data);
+            }
+        })
+        .catch(function(error) {
+            console.error('Error inserting time off record:', error);
+        });
+}
+
 function markUnavailableHourly(tempId, cellDate) {
     const cell = document.querySelector(`td[data-time*='${moment(cellDate).format('MMM D, YYYY')}']`);
     if (cell) {
@@ -417,8 +334,7 @@ function markUnavailableHourly(tempId, cellDate) {
     }
   }
 
-  $(document).ready(function() {
-    // Initialize the Zoho CRM SDK
+$(document).ready(function() {
     ZOHO.embeddedApp.on("PageLoad", function(data) {
         populateCalendarHeader();
         fetchAndPopulateCalendar();
@@ -444,7 +360,6 @@ function markUnavailableHourly(tempId, cellDate) {
         fetchAndPopulateCalendar();
     });
 
-    // Close unavailability options when clicking outside
     document.addEventListener('click', function(event) {
         let options = document.querySelectorAll('.unavailability-options');
         options.forEach(option => {
