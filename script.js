@@ -292,47 +292,64 @@ function insertTimeOffRecord(tempId, cellDate) {
         });
 }
 
+let hourlyUnavailabilityPopup;
+
 function markUnavailableHourly(tempId, cellDate) {
+    // Remove any existing popup
+    if (hourlyUnavailabilityPopup) {
+        hourlyUnavailabilityPopup.remove();
+    }
+
     const cell = document.querySelector(`td[data-time*='${moment(cellDate).format('MMM D, YYYY')}']`);
     if (cell) {
-      // Create a small popup
-      const popup = document.createElement('div');
-      popup.className = 'hourly-unavailability-popup';
-      popup.innerHTML = `
-        <input type="date" id="unavailable-date" value="${moment(cellDate).format('YYYY-MM-DD')}">
-        <input type="time" id="unavailable-start-time">
-        <input type="time" id="unavailable-end-time">
-        <button id="save-hourly-unavailability" style="font-size: 12px;">Save</button>
-        <button id="cancel-hourly-unavailability" style="font-size: 12px;">Cancel</button>
-      `;
-      cell.appendChild(popup);
-  
-      // Add event listeners
-      document.getElementById('save-hourly-unavailability').addEventListener('click', () => {
-        const date = document.getElementById('unavailable-date').value;
-        const startTime = document.getElementById('unavailable-start-time').value;
-        const endTime = document.getElementById('unavailable-end-time').value;
-  
-        if (date && startTime && endTime) {
-          updateCellForHourlyUnavailability(tempId, cellDate, startTime, endTime);
-          popup.remove(); // Remove the popup
-        } else {
-          console.error('All fields are required.');
-        }
-      });
-  
-      document.getElementById('cancel-hourly-unavailability').addEventListener('click', () => {
-        popup.remove(); // Remove the popup
-      });
-  
-      // Add event listener to popup to listen for clicks outside
-      document.addEventListener('click', (event) => {
-        if (!popup.contains(event.target) && !event.target === popup) {
-          popup.remove(); // Remove the popup if clicked outside
-        }
-      });
+        // Create a small popup
+        hourlyUnavailabilityPopup = document.createElement('div');
+        hourlyUnavailabilityPopup.className = 'hourly-unavailability-popup';
+        hourlyUnavailabilityPopup.innerHTML = `
+            <input type="date" id="unavailable-date" value="${moment(cellDate).format('YYYY-MM-DD')}">
+            <input type="time" id="unavailable-start-time">
+            <input type="time" id="unavailable-end-time">
+            <button id="save-hourly-unavailability" style="font-size: 12px;">Save</button>
+            <button id="cancel-hourly-unavailability" style="font-size: 12px;">Cancel</button>
+            <div id="error-message"></div>
+        `;
+        cell.appendChild(hourlyUnavailabilityPopup);
+
+        // Add event listeners
+        document.getElementById('save-hourly-unavailability').addEventListener('click', () => {
+            const date = document.getElementById('unavailable-date').value;
+            const startTime = document.getElementById('unavailable-start-time').value;
+            const endTime = document.getElementById('unavailable-end-time').value;
+            const errorMessage = document.getElementById('error-message');
+
+            // Validate input fields
+            if (!date || !startTime || !endTime) {
+                errorMessage.innerText = 'Please fill in all fields.';
+                return;
+            }
+
+            // Check if start time is before end time
+            if (moment(startTime, 'HH:mm').isAfter(moment(endTime, 'HH:mm'))) {
+                errorMessage.innerText = 'Start time cannot be after end time.';
+                return;
+            }
+
+            // Check if selected date is in the past
+            if (moment(date).isBefore(moment())) {
+                errorMessage.innerText = 'Cannot mark unavailability for a past date.';
+                return;
+            }
+
+            // Update cell for hourly unavailability
+            updateCellForHourlyUnavailability(tempId, cellDate, startTime, endTime);
+            hourlyUnavailabilityPopup.remove(); // Remove the popup
+        });
+
+        document.getElementById('cancel-hourly-unavailability').addEventListener('click', () => {
+            hourlyUnavailabilityPopup.remove(); // Remove the popup
+        });
     }
-  }
+}
 
 $(document).ready(function() {
     ZOHO.embeddedApp.on("PageLoad", function(data) {
