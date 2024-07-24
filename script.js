@@ -293,6 +293,7 @@ function insertTimeOffRecord(tempId, cellDate) {
 }
 
 let hourlyUnavailabilityPopup;
+let backdropElement;
 
 function markUnavailableHourly(tempId, cellDate) {
     // Remove any existing popup
@@ -302,6 +303,11 @@ function markUnavailableHourly(tempId, cellDate) {
 
     const cell = document.querySelector(`td[data-time*='${moment(cellDate).format('MMM D, YYYY')}']`);
     if (cell) {
+        // Create a backdrop element to blur the background
+        backdropElement = document.createElement('div');
+        backdropElement.className = 'backdrop';
+        document.body.appendChild(backdropElement);
+
         // Create a small popup
         hourlyUnavailabilityPopup = document.createElement('div');
         hourlyUnavailabilityPopup.className = 'hourly-unavailability-popup';
@@ -313,7 +319,15 @@ function markUnavailableHourly(tempId, cellDate) {
             <button id="cancel-hourly-unavailability" style="font-size: 12px;">Cancel</button>
             <div id="error-message"></div>
         `;
-        cell.appendChild(hourlyUnavailabilityPopup);
+
+        // Center the popup
+        hourlyUnavailabilityPopup.style.position = 'fixed';
+        hourlyUnavailabilityPopup.style.top = '50%';
+        hourlyUnavailabilityPopup.style.left = '50%';
+        hourlyUnavailabilityPopup.style.transform = 'translate(-50%, -50%)';
+        hourlyUnavailabilityPopup.style.zIndex = '1';
+
+        document.body.appendChild(hourlyUnavailabilityPopup);
 
         // Add event listeners
         document.getElementById('save-hourly-unavailability').addEventListener('click', () => {
@@ -343,14 +357,15 @@ function markUnavailableHourly(tempId, cellDate) {
             // Update cell for hourly unavailability
             updateCellForHourlyUnavailability(tempId, cellDate, startTime, endTime);
             hourlyUnavailabilityPopup.remove(); // Remove the popup
+            backdropElement.remove(); // Remove the backdrop
         });
 
         document.getElementById('cancel-hourly-unavailability').addEventListener('click', () => {
             hourlyUnavailabilityPopup.remove(); // Remove the popup
+            backdropElement.remove(); // Remove the backdrop
         });
     }
 }
-
 $(document).ready(function() {
     ZOHO.embeddedApp.on("PageLoad", function(data) {
         populateCalendarHeader();
