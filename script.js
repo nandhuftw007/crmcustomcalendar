@@ -304,6 +304,7 @@ function insertTimeOffRecord(tempId, cellDate) {
         .then(function(response) {
             if (response.data && response.data.length > 0 && response.data[0].code === "SUCCESS") {
                 console.log('Time off record inserted successfully:', response.data);
+                alert("All Day Unavailability Record created successfully! ");
                 fetchAndPopulateCalendar(); // Refresh the calendar to show the updated data
             } else {
                 console.error('Error inserting time off record:', response.data);
