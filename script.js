@@ -139,7 +139,28 @@ function populateCalendarBody(leads, schedules, timeOffRecords) {
                 } else if (unavailabilityRecord.Unavailability === 'Hourly') {
                     let startTimeString = moment(unavailabilityRecord.From_Date_Time).format('hh:mm a');
                     let endTimeString = moment(unavailabilityRecord.To_Date).format('hh:mm a');
-                    cell.innerHTML = `Unavailable (${startTimeString} - ${endTimeString})`;
+                    
+                    // Calculate the position of the hourly unavailability within the cell
+                    let startHour = moment(unavailabilityRecord.From_Date_Time).hour();
+                    let startMinute = moment(unavailabilityRecord.From_Date_Time).minute();
+                    let endHour = moment(unavailabilityRecord.To_Date).hour();
+                    let endMinute = moment(unavailabilityRecord.To_Date).minute();
+
+                    // Create a div for hourly unavailability and set its position
+                    let hourlyUnavailabilityDiv = document.createElement('div');
+                    hourlyUnavailabilityDiv.className = 'hourly-unavailable';
+                    hourlyUnavailabilityDiv.innerHTML = `Unavailable (${startTimeString} - ${endTimeString})`;
+
+                    // Calculate top position based on start time
+                    let startPosition = ((startHour * 60 + startMinute) / (24 * 60)) * 100;
+                    let endPosition = ((endHour * 60 + endMinute) / (24 * 60)) * 100;
+                    let duration = endPosition - startPosition;
+
+                    hourlyUnavailabilityDiv.style.position = 'absolute';
+                    hourlyUnavailabilityDiv.style.top = `${startPosition}%`;
+                    hourlyUnavailabilityDiv.style.height = `${duration}%`;
+
+                    cell.appendChild(hourlyUnavailabilityDiv);
                     cell.classList.add('unavailable');
                 }
             } else {
@@ -210,6 +231,7 @@ function populateCalendarBody(leads, schedules, timeOffRecords) {
         tbody.appendChild(row);
     });
 }
+
 
 function fetchAndPopulateCalendar() {
     ZOHO.CRM.API.getAllRecords({ Entity: "Leads", sort_order: "desc", per_page: 200 })
@@ -335,25 +357,25 @@ function markUnavailableHourly(tempId, cellDate) {
             const startTime = document.getElementById('unavailable-start-time').value;
             const endTime = document.getElementById('unavailable-end-time').value;
             const errorMessage = document.getElementById('error-message');
-    
+
             // Validate input fields
             if (!date || !startTime || !endTime) {
                 errorMessage.innerText = 'Please fill in all fields.';
                 return;
             }
-    
+
             // Check if start time is before end time
             if (moment(startTime, 'HH:mm').isAfter(moment(endTime, 'HH:mm'))) {
                 errorMessage.innerText = 'Start time cannot be after end time.';
                 return;
             }
-    
+
             // Check if selected date is in the past
             if (moment(date).isBefore(moment())) {
                 errorMessage.innerText = 'Cannot mark unavailability for a past date.';
                 return;
             }
-    
+
             // Update cell for hourly unavailability
             function updateCellForHourlyUnavailability(tempId, cellDate, startTime, endTime) {
                 let formattedCellDate = moment(cellDate).format('YYYY-MM-DD');
@@ -368,31 +390,30 @@ function markUnavailableHourly(tempId, cellDate) {
                 };
             
                 ZOHO.CRM.API.insertRecord({ Entity: "Time_Off", APIData: recordData, Trigger: [] })
-                   .then(function(data) {
-                        console.log("Insert Response: ", data);
-                        if (data.data && data.data.length > 0 && data.data[0].code === "SUCCESS") {
-                            alert("Hourly Unavailability Record created successfully! ");
-                            // Update the calendar cell directly
-                            let cell = document.querySelector(`td[data-time*='${moment(cellDate).format('MMM D, YYYY')}']`);
-                            if (cell) {
-                                cell.innerHTML = `Unavailable (${startTime} - ${endTime})`;
-                                cell.classList.add('unavailable'); // Mark the cell as unavailable
-                            }
-                        } else {
-                            alert("Failed to create Hourly Unavailability Record: " + (data.data[0].message || "Unknown error"));
-                        }
-                    })
-                   .catch(function(error) {
-                        console.error('Error inserting Hourly Unavailability Record:', error);
-                        alert('An error occurred while creating the Hourly Unavailability Record. Check the console for details. ');
-                    });
+                  .then(function(data) {
+                      console.log("Insert Response: ", data);
+                      if (data.data && data.data.length > 0 && data.data[0].code === "SUCCESS") {
+                          alert("Hourly Unavailability Record created successfully! ");
+                          let cellSelector = `td[data-time*='${moment(cellDate).format('MMM D, YYYY')}'][data-temp-id='${tempId}']`;
+                          let cell = document.querySelector(cellSelector);
+                          if (cell) {
+                              cell.innerHTML = `Unavailable (${startTime} - ${endTime})`;
+                              cell.classList.add('unavailable'); // Mark the cell as unavailable
+                          }
+                      } else {
+                          alert("Failed to create Hourly Unavailability Record: " + (data.data[0].message || "Unknown error"));
+                      }
+                  })
+                  .catch(function(error) {
+                      console.error('Error inserting Hourly Unavailability Record:', error);
+                      alert('An error occurred while creating the Hourly Unavailability Record. Check the console for details. ');
+                  });
             }
-    
+
             updateCellForHourlyUnavailability(tempId, cellDate, startTime, endTime);
             hourlyUnavailabilityPopup.remove(); // Remove the popup
             backdropElement.remove(); // Remove the backdrop
         });
-    
 
         document.getElementById('cancel-hourly-unavailability').addEventListener('click', () => {
             hourlyUnavailabilityPopup.remove(); // Remove the popup
@@ -400,6 +421,9 @@ function markUnavailableHourly(tempId, cellDate) {
         });
     }
 }
+
+
+
 $(document).ready(function() {
     ZOHO.embeddedApp.on("PageLoad", function(data) {
         populateCalendarHeader();
