@@ -400,6 +400,7 @@ function markUnavailableHourly(tempId, cellDate) {
                               cell.innerHTML = `Unavailable (${startTime} - ${endTime})`;
                               cell.classList.add('unavailable'); // Mark the cell as unavailable
                           }
+                          fetchAndPopulateCalendar(); // Call this function to re-render the calendar
                       } else {
                           alert("Failed to create Hourly Unavailability Record: " + (data.data[0].message || "Unknown error"));
                       }
