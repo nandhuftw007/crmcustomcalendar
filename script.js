@@ -335,30 +335,54 @@ function markUnavailableHourly(tempId, cellDate) {
             const startTime = document.getElementById('unavailable-start-time').value;
             const endTime = document.getElementById('unavailable-end-time').value;
             const errorMessage = document.getElementById('error-message');
-
+    
             // Validate input fields
             if (!date || !startTime || !endTime) {
                 errorMessage.innerText = 'Please fill in all fields.';
                 return;
             }
-
+    
             // Check if start time is before end time
             if (moment(startTime, 'HH:mm').isAfter(moment(endTime, 'HH:mm'))) {
                 errorMessage.innerText = 'Start time cannot be after end time.';
                 return;
             }
-
+    
             // Check if selected date is in the past
             if (moment(date).isBefore(moment())) {
                 errorMessage.innerText = 'Cannot mark unavailability for a past date.';
                 return;
             }
-
+    
             // Update cell for hourly unavailability
+            function updateCellForHourlyUnavailability(tempId, cellDate, startTime, endTime) {
+                const timeOffRecord = {
+                    "Name1": { "id": tempId },
+                    "Unavailability": "Hourly",
+                    "From_Date_Time": moment(`${cellDate} ${startTime}`).format('YYYY-MM-DDTHH:mm:ss'),
+                    "To_Date": moment(`${cellDate} ${endTime}`).format('YYYY-MM-DDTHH:mm:ss')
+                    
+                };
+    
+                ZOHO.CRM.API.insertRecord({ Entity: "Time_Off", APIData: timeOffRecord })
+                    .then(function(response) {
+                        if (response.data && response.data.length > 0 && response.data[0].code === "SUCCESS") {
+                            console.log('Time off record inserted successfully:', response.data);
+                            fetchAndPopulateCalendar(); // Refresh the calendar to show the updated data
+                        } else {
+                            console.error('Error inserting time off record:', response.data);
+                        }
+                    })
+                    .catch(function(error) {
+                        console.error('Error inserting time off record:', error);
+                    });
+            }
+    
             updateCellForHourlyUnavailability(tempId, cellDate, startTime, endTime);
             hourlyUnavailabilityPopup.remove(); // Remove the popup
             backdropElement.remove(); // Remove the backdrop
         });
+    
 
         document.getElementById('cancel-hourly-unavailability').addEventListener('click', () => {
             hourlyUnavailabilityPopup.remove(); // Remove the popup
