@@ -356,25 +356,35 @@ function markUnavailableHourly(tempId, cellDate) {
     
             // Update cell for hourly unavailability
             function updateCellForHourlyUnavailability(tempId, cellDate, startTime, endTime) {
-                const timeOffRecord = {
-                    "Name1": { "id": tempId },
+                let formattedCellDate = moment(cellDate).format('YYYY-MM-DD');
+                let formattedStartTime = moment(`${formattedCellDate} ${startTime}`, 'YYYY-MM-DD HH:mm').format('YYYY-MM-DDTHH:mm:ss');
+                let formattedEndTime = moment(`${formattedCellDate} ${endTime}`, 'YYYY-MM-DD HH:mm').format('YYYY-MM-DDTHH:mm:ss');
+            
+                var recordData = {
+                    "Name1": tempId,
                     "Unavailability": "Hourly",
-                    "From_Date_Time": moment(`${cellDate} ${startTime}`).format('YYYY-MM-DDTHH:mm:ss'),
-                    "To_Date": moment(`${cellDate} ${endTime}`).format('YYYY-MM-DDTHH:mm:ss')
-                    
+                    "From_Date_Time": formattedStartTime,
+                    "To_Date": formattedEndTime
                 };
-    
-                ZOHO.CRM.API.insertRecord({ Entity: "Time_Off", APIData: timeOffRecord })
-                    .then(function(response) {
-                        if (response.data && response.data.length > 0 && response.data[0].code === "SUCCESS") {
-                            console.log('Time off record inserted successfully:', response.data);
-                            fetchAndPopulateCalendar(); // Refresh the calendar to show the updated data
+            
+                ZOHO.CRM.API.insertRecord({ Entity: "Time_Off", APIData: recordData, Trigger: [] })
+                   .then(function(data) {
+                        console.log("Insert Response: ", data);
+                        if (data.data && data.data.length > 0 && data.data[0].code === "SUCCESS") {
+                            alert("Hourly Unavailability Record created successfully! ");
+                            // Update the calendar cell directly
+                            let cell = document.querySelector(`td[data-time*='${moment(cellDate).format('MMM D, YYYY')}']`);
+                            if (cell) {
+                                cell.innerHTML = `Unavailable (${startTime} - ${endTime})`;
+                                cell.classList.add('unavailable'); // Mark the cell as unavailable
+                            }
                         } else {
-                            console.error('Error inserting time off record:', response.data);
+                            alert("Failed to create Hourly Unavailability Record: " + (data.data[0].message || "Unknown error"));
                         }
                     })
-                    .catch(function(error) {
-                        console.error('Error inserting time off record:', error);
+                   .catch(function(error) {
+                        console.error('Error inserting Hourly Unavailability Record:', error);
+                        alert('An error occurred while creating the Hourly Unavailability Record. Check the console for details. ');
                     });
             }
     
