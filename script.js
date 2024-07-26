@@ -218,7 +218,7 @@ function populateCalendarBody(leads, schedules, timeOffRecords) {
                             sort_order: "asc",
                             per_page: 200
                         })
-                        .then(function(response) {
+                      .then(function(response) {
                             if (response.data && response.data.length > 0) {
                                 const accounts = response.data.map(account => ({
                                     id: account.id,
@@ -251,6 +251,7 @@ function populateCalendarBody(leads, schedules, timeOffRecords) {
                 
                                 popupContent += `
                                     <button class="next-button">Next</button>
+                                    <button class="cancel-button">Cancel</button>
                                 `;
                 
                                 popup.innerHTML = popupContent;
@@ -265,6 +266,89 @@ function populateCalendarBody(leads, schedules, timeOffRecords) {
                                     let selectedAccountId = popup.querySelector('input[name="account"]:checked').value;
                                     console.log("Selected account ID:", selectedAccountId);
                 
+                                    // Call the API to fetch Deals for the selected account
+                                    ZOHO.CRM.API.getAllRecords({
+                                        Entity: "Deals",
+                                        Criteria: "Account_Name:equals:" + selectedAccountId,
+                                        sort_order: "asc",
+                                        per_page: 200
+                                    })
+                                  .then(function(response) {
+                                        if (response.data && response.data.length > 0) {
+                                            const deals = response.data.map(deal => ({
+                                                id: deal.id,
+                                                Deal_Name: deal.Deal_Name
+                                            }));
+                
+                                            // Create a new popup to display the deal names
+                                            let dealPopup = document.createElement("div");
+                                            dealPopup.className = "popup";
+                                            dealPopup.style.position = "absolute";
+                                            dealPopup.style.top = "50%";
+                                            dealPopup.style.left = "50%";
+                                            dealPopup.style.transform = "translate(-50%, -50%)";
+                                            dealPopup.style.background = "white";
+                                            dealPopup.style.padding = "20px";
+                                            dealPopup.style.border = "1px solid #ccc";
+                                            dealPopup.style.borderRadius = "5px";
+                                            dealPopup.style.boxShadow = "0 0 10px rgba(0, 0, 0, 0.2)";
+                                            dealPopup.style.maxHeight = "300px";
+                                            dealPopup.style.overflowY = "auto";
+                
+                                            let dealPopupContent = "";
+                                            deals.forEach(function(deal) {
+                                                dealPopupContent += `
+                                                    <p>
+                                                        <input type="radio" name="deal" value="${deal.id}"> ${deal.Deal_Name}
+                                                    </p>
+                                                `;
+                                            });
+                
+                                            dealPopupContent += `
+                                                <button class="select-button">Select</button>
+                                                <button class="cancel-button">Cancel</button>
+                                            `;
+                
+                                            dealPopup.innerHTML = dealPopupContent;
+                
+                                            // Add the deal popup to the page
+                                            document.body.appendChild(dealPopup);
+                
+                                            // Add a click event listener to the select button
+                                            let selectButton = dealPopup.querySelector(".select-button");
+                                            selectButton.addEventListener("click", function() {
+                                                // Get the selected deal ID
+                                                let selectedDealId = dealPopup.querySelector('input[name="deal"]:checked').value;
+                                                console.log("Selected deal ID:", selectedDealId);
+                
+                                                // Close the deal popup
+                                                dealPopup.remove();
+                
+                                                // Close the account popup
+                                                popup.remove();
+                                            });
+                
+                                            // Add a click event listener to the cancel button
+                                            let cancelButton = dealPopup.querySelector(".cancel-button");
+                                            cancelButton.addEventListener("click", function() {
+                                                // Close the deal popup
+                                                dealPopup.remove();
+                                            });
+                                        } else {
+                                            console.log("No deals found for the selected account");
+                                        }
+                                    })
+                                  .catch(function(error) {
+                                        console.error("Error fetching deals:", error);
+                                    });
+                
+                                    // Close the account popup
+                                    popup.remove();
+                                });
+                
+                                // Add a click event listener to the cancel button
+                                let cancelButton = popup.querySelector(".cancel-button");
+                                cancelButton.addEventListener("click", function() {
                                     // Close the popup
                                     popup.remove();
                                 });
@@ -272,7 +356,7 @@ function populateCalendarBody(leads, schedules, timeOffRecords) {
                                 console.log("No records found.");
                             }
                         })
-                        .catch(function(error) {
+                      .catch(function(error) {
                             console.error("Error fetching records:", error);
                         });
                     });
