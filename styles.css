@@ -292,7 +292,21 @@ tbody td {
   .cell:hover .plus-button {
     opacity: 1; /* show the plus button on hover */
   }
-
+  .popup {
+    width: 300px;
+    padding: 20px;
+    border-radius: 5px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+    background-color: white;
+  }
+  
+  .popup p {
+    margin-bottom: 10px;
+  }
+  
+  .next-button {
+    background-color: #4CA
+  }
 
 /* Responsive adjustments */
 
