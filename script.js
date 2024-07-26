@@ -212,7 +212,69 @@ function populateCalendarBody(leads, schedules, timeOffRecords) {
                     plusButton.className = 'plus-button';
                     plusButton.innerText = '+';
                     plusButton.addEventListener('click', function() {
-                        alert(`Add schedule for Temp ID: ${lead.id} on ${cellDate}`);
+                        // Call the API to fetch Accounts
+                        ZOHO.CRM.API.getAllRecords({
+                            Entity: "Accounts",
+                            sort_order: "asc",
+                            per_page: 200
+                        })
+                        .then(function(response) {
+                            if (response.data && response.data.length > 0) {
+                                const accounts = response.data.map(account => ({
+                                    id: account.id,
+                                    Account_Name: account.Account_Name
+                                }));
+                
+                                // Create a popup to display the account names
+                                let popup = document.createElement("div");
+                                popup.className = "popup";
+                                popup.style.position = "absolute";
+                                popup.style.top = "50%";
+                                popup.style.left = "50%";
+                                popup.style.transform = "translate(-50%, -50%)";
+                                popup.style.background = "white";
+                                popup.style.padding = "20px";
+                                popup.style.border = "1px solid #ccc";
+                                popup.style.borderRadius = "5px";
+                                popup.style.boxShadow = "0 0 10px rgba(0, 0, 0, 0.2)";
+                                popup.style.maxHeight = "300px";
+                                popup.style.overflowY = "auto";
+                
+                                let popupContent = "";
+                                accounts.forEach(function(account) {
+                                    popupContent += `
+                                        <p>
+                                            <input type="radio" name="account" value="${account.id}"> ${account.Account_Name}
+                                        </p>
+                                    `;
+                                });
+                
+                                popupContent += `
+                                    <button class="next-button">Next</button>
+                                `;
+                
+                                popup.innerHTML = popupContent;
+                
+                                // Add the popup to the page
+                                document.body.appendChild(popup);
+                
+                                // Add a click event listener to the next button
+                                let nextButton = popup.querySelector(".next-button");
+                                nextButton.addEventListener("click", function() {
+                                    // Get the selected account ID
+                                    let selectedAccountId = popup.querySelector('input[name="account"]:checked').value;
+                                    console.log("Selected account ID:", selectedAccountId);
+                
+                                    // Close the popup
+                                    popup.remove();
+                                });
+                            } else {
+                                console.log("No records found.");
+                            }
+                        })
+                        .catch(function(error) {
+                            console.error("Error fetching records:", error);
+                        });
                     });
                     cell.appendChild(plusButton);
                 }
