@@ -567,7 +567,7 @@ function createShiftScheduleRecord(tempId, scheduleName, startDate, startTime, e
         "Name": scheduleName,
         "Start_Date_and_Work_Start_Time": moment(startDateTime).format('YYYY-MM-DDTHH:mm:ssZ'), // Format as ISO 8601 string
         "End_Date_and_Work_End_Time": moment(endDateTime).format('YYYY-MM-DDTHH:mm:ssZ'), // Format as ISO 8601 string
-        //"Days_in_the_Week": frequency
+        "Days_in_the_Week": frequency
     };
 
     ZOHO.CRM.API.insertRecord({ Entity: "Shift_Schedule", APIData: shiftScheduleRecord })
