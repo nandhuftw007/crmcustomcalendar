@@ -343,29 +343,30 @@ function populateCalendarBody(leads, schedules, timeOffRecords) {
                                     <p>Start Time: <input type="time" id="start-time"></p>
                                     <p>End Date: <input type="date" id="end-date"></p>
                                     <p>End Time: <input type="time" id="end-time"></p>
-                                    <p>Frequency:<br> <br>
-                                        <input type="radio" id="Daily" name="frequency" value="Daily">
-                                        <label for="Daily">Daily</label>
+                                    <p>
+                                        <strong>Frequency:</strong><br><br>
+                                        <input type="checkbox" id="Daily" name="frequency[]" value="Daily">
+                                        <label for="Daily">Daily</label><br>
 
-                                        <input type="radio" id="Weekdays" name="frequency" value="Weekdays">
+                                        <input type="checkbox" id="Weekdays" name="frequency[]" value="Weekdays">
                                         <label for="Weekdays">Weekdays</label><br>
 
-                                        <input type="radio" id="Monday" name="frequency" value="Monday">
+                                        <input type="checkbox" id="Monday" name="frequency[]" value="Monday">
                                         <label for="Monday">Monday</label><br>
 
-                                        <input type="radio" id="Tuesday" name="frequency" value="Tuesday">
+                                        <input type="checkbox" id="Tuesday" name="frequency[]" value="Tuesday">
                                         <label for="Tuesday">Tuesday</label><br>
 
-                                        <input type="radio" id="Wednesday" name="frequency" value="Wednesday">
+                                        <input type="checkbox" id="Wednesday" name="frequency[]" value="Wednesday">
                                         <label for="Wednesday">Wednesday</label><br>
 
-                                        <input type="radio" id="Thursday" name="frequency" value="Thursday">
+                                        <input type="checkbox" id="Thursday" name="frequency[]" value="Thursday">
                                         <label for="Thursday">Thursday</label><br>
 
-                                        <input type="radio" id="Friday" name="frequency" value="Friday">
+                                        <input type="checkbox" id="Friday" name="frequency[]" value="Friday">
                                         <label for="Friday">Friday</label><br>
 
-                                        <input type="radio" id="Saturday" name="frequency" value="Saturday">
+                                        <input type="checkbox" id="Saturday" name="frequency[]" value="Saturday">
                                         <label for="Saturday">Saturday</label><br>
                                     </p>
                                     <button class="create-button">Create</button>
