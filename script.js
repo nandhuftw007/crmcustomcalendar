@@ -380,35 +380,41 @@ function populateCalendarBody(leads, schedules, timeOffRecords) {
                   
                                   // Add a click event listener to the create button
                                   let createButton = schedulePopup.querySelector(".create-button");
-                                  createButton.addEventListener("click", function() {
-                                    // Get the schedule details
-                                    let scheduleName = document.getElementById("schedule-name").value;
-                                    let startDate = document.getElementById("start-date").value;
-                                    let startTime = document.getElementById("start-time").value;
-                                    let endDate = document.getElementById("end-date").value;
-                                    let endTime = document.getElementById("end-time").value;
-                                    let frequency = document.getElementById("frequency").value;
-                  
-                                    // Get the temp ID from the row
-                                    let tempId = document.querySelector(`td[data-temp-id]`).dataset.tempId;
-                  
-                                    console.log(`Temp ID: ${tempId}`);
-                                    console.log(`Schedule Name: ${scheduleName}`);
-                                    console.log(`Start Date: ${startDate}`);
-                                    console.log(`Start Time: ${startTime}`);
-                                    console.log(`End Date: ${endDate}`);
-                                    console.log(`End Time: ${endTime}`);
-                                    console.log(`Frequency: ${frequency}`);
+                                    createButton.addEventListener("click", function() {
+                                        // Get the schedule details
+                                        let scheduleName = document.getElementById("schedule-name").value;
+                                        let startDate = document.getElementById("start-date").value;
+                                        let startTime = document.getElementById("start-time").value;
+                                        let endDate = document.getElementById("end-date").value;
+                                        let endTime = document.getElementById("end-time").value;
 
-                                    // Call the createShiftScheduleRecord function
-                                    createShiftScheduleRecord(tempId, scheduleName, startDate, startTime, endDate, endTime, frequency, selectedAccountId, selectedDealId);
-                  
-                                    // Close the popups
-                                    dealPopup.remove();
-                                    schedulePopup.remove();
-                                    popup.remove();
-                                  });
-                  
+                                        let frequency = [];
+                                        let checkboxes = document.getElementsByName("frequency[]");
+                                        for (let i = 0; i < checkboxes.length; i++) {
+                                            if (checkboxes[i].checked) {
+                                                frequency.push(checkboxes[i].value);
+                                            }
+                                        }
+
+                                        // Get the temp ID from the row
+                                        let tempId = document.querySelector(`td[data-temp-id]`).dataset.tempId;
+
+                                        console.log(`Temp ID: ${tempId}`);
+                                        console.log(`Schedule Name: ${scheduleName}`);
+                                        console.log(`Start Date: ${startDate}`);
+                                        console.log(`Start Time: ${startTime}`);
+                                        console.log(`End Date: ${endDate}`);
+                                        console.log(`End Time: ${endTime}`);
+                                        console.log(`Frequency: ${frequency}`);
+
+                                        // Call the createShiftScheduleRecord function
+                                        createShiftScheduleRecord(tempId, scheduleName, startDate, startTime, endDate, endTime, frequency, selectedAccountId, selectedDealId);
+
+                                        // Close the popups
+                                        dealPopup.remove();
+                                        schedulePopup.remove();
+                                        popup.remove();
+                                    });
                                   // Add a click event listener to the cancel button
                                   let cancelButton = schedulePopup.querySelector(".cancel-button");
                                   cancelButton.addEventListener("click", function() {
