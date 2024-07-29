@@ -385,6 +385,9 @@ function populateCalendarBody(leads, schedules, timeOffRecords) {
                                     console.log(`End Date: ${endDate}`);
                                     console.log(`End Time: ${endTime}`);
                                     console.log(`Frequency: ${frequency}`);
+
+                                    // Call the createShiftScheduleRecord function
+                                    createShiftScheduleRecord(tempId, scheduleName, startDate, startTime, endDate, endTime, frequency, selectedAccountId, selectedDealId);
                   
                                     // Close the popups
                                     dealPopup.remove();
@@ -530,6 +533,38 @@ function insertTimeOffRecord(tempId, cellDate) {
         })
         .catch(function(error) {
             console.error('Error inserting time off record:', error);
+        });
+}
+// Insert the new function here
+function createShiftScheduleRecord(tempId, scheduleName, startDate, startTime, endDate, endTime, frequency, selectedAccountId, selectedDealId) {
+    const startDateTime = moment(`${startDate} ${startTime}`, 'YYYY-MM-DD HH:mm').toDate();
+    const endDateTime = moment(`${endDate} ${endTime}`, 'YYYY-MM-DD HH:mm').toDate();
+
+    const shiftScheduleRecord = {
+        "Schedule_For_Temp": tempId,
+        "Client_Name": selectedAccountId,
+        "Job": selectedDealId,
+        "Name": scheduleName,
+        "Start_Date_and_Work_Start_Time": moment(startDateTime).format('YYYY-MM-DDTHH:mm:ssZ'), // Format as ISO 8601 string
+        "End_Date_and_Work_End_Time": moment(endDateTime).format('YYYY-MM-DDTHH:mm:ssZ'), // Format as ISO 8601 string
+        //"Days_in_the_Week": frequency
+    };
+
+    ZOHO.CRM.API.insertRecord({ Entity: "Shift_Schedule", APIData: shiftScheduleRecord })
+       .then(function(response) {
+            console.log('Shift schedule record inserted successfully:', response); // Log the API response
+            if (response.data && response.data.length > 0 && response.data[0].code === "SUCCESS") {
+                console.log('Shift Schedule Record created successfully!');
+                alert("Shift Schedule Record created successfully!");
+                fetchAndPopulateCalendar(); // Refresh the calendar to show the updated data
+            } else {
+                console.error('Error creating Shift Schedule Record:', response.data);
+                alert("Failed to create Shift Schedule Record: " + (response.data[0].message || "Unknown error"));
+            }
+        })
+       .catch(function(error) {
+            console.error('Error creating Shift Schedule Record:', error);
+            alert('An error occurred while creating the Shift Schedule Record. Check the console for details.');
         });
 }
 
