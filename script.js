@@ -343,17 +343,30 @@ function populateCalendarBody(leads, schedules, timeOffRecords) {
                                     <p>Start Time: <input type="time" id="start-time"></p>
                                     <p>End Date: <input type="date" id="end-date"></p>
                                     <p>End Time: <input type="time" id="end-time"></p>
-                                    <p>Frequency:
-                                      <select id="frequency">
-                                        <option value="Daily">Daily</option>
-                                        <option value="Weekdays">Weekdays</option>
-                                        <option value="Monday">Monday</option>
-                                        <option value="Tuesday">Tuesday</option>
-                                        <option value="Wednesday">Wednesday</option>
-                                        <option value="Thursday">Thursday</option>
-                                        <option value="Friday">Friday</option>
-                                        <option value="Saturday">Saturday</option>
-                                      </select>
+                                    <p>Frequency:<br> <br>
+                                        <input type="radio" id="Daily" name="frequency" value="Daily">
+                                        <label for="Daily">Daily</label>
+
+                                        <input type="radio" id="Weekdays" name="frequency" value="Weekdays">
+                                        <label for="Weekdays">Weekdays</label><br>
+
+                                        <input type="radio" id="Monday" name="frequency" value="Monday">
+                                        <label for="Monday">Monday</label><br>
+
+                                        <input type="radio" id="Tuesday" name="frequency" value="Tuesday">
+                                        <label for="Tuesday">Tuesday</label><br>
+
+                                        <input type="radio" id="Wednesday" name="frequency" value="Wednesday">
+                                        <label for="Wednesday">Wednesday</label><br>
+
+                                        <input type="radio" id="Thursday" name="frequency" value="Thursday">
+                                        <label for="Thursday">Thursday</label><br>
+
+                                        <input type="radio" id="Friday" name="frequency" value="Friday">
+                                        <label for="Friday">Friday</label><br>
+
+                                        <input type="radio" id="Saturday" name="frequency" value="Saturday">
+                                        <label for="Saturday">Saturday</label><br>
                                     </p>
                                     <button class="create-button">Create</button>
                                     <button class="cancel-button">Cancel</button>
