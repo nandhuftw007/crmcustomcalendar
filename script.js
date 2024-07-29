@@ -381,6 +381,7 @@ function populateCalendarBody(leads, schedules, timeOffRecords) {
                                   // Add a click event listener to the create button
                                   let createButton = schedulePopup.querySelector(".create-button");
                                     createButton.addEventListener("click", function() {
+                                        let tempId = lead.id;
                                         // Get the schedule details
                                         let scheduleName = document.getElementById("schedule-name").value;
                                         let startDate = document.getElementById("start-date").value;
@@ -397,7 +398,7 @@ function populateCalendarBody(leads, schedules, timeOffRecords) {
                                         }
 
                                         // Get the temp ID from the row
-                                        let tempId = document.querySelector(`td[data-temp-id]`).dataset.tempId;
+                                        //let tempId = document.querySelector(`td[data-temp-id]`).dataset.tempId;
 
                                         console.log(`Temp ID: ${tempId}`);
                                         console.log(`Schedule Name: ${scheduleName}`);
