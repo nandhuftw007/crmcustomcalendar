@@ -670,7 +670,7 @@ function fetchAndPopulateCalendar() {
                     First_Name: lead.First_Name,
                     Last_Name: lead.Last_Name
                 }));
-                fetchAndPopulateSchedulesAndTimeOff(leads);
+                fetchAndPopulateSchedulesAndTimeOff(leads, searchTerm);
             } else {
                 console.log("No leads found.");
                 populateCalendarBody([], [], []);
@@ -682,13 +682,19 @@ function fetchAndPopulateCalendar() {
         });
 }
 
-function fetchAndPopulateSchedulesAndTimeOff(leads) {
+function fetchAndPopulateSchedulesAndTimeOff(leads, searchTerm = '') {
     const weekDates = getWeekDates(new Date(currentDate));
     const weekStartDate = moment(weekDates[0], 'MMM D, YYYY').format('YYYY-MM-DD');
     const weekEndDate = moment(weekDates[6], 'MMM D, YYYY').format('YYYY-MM-DD');
 
     const leadIds = leads.map(lead => lead.id);
     const leadIdsString = leadIds.join(",");
+
+    // Filter leads based on the search term
+    const filteredLeads = leads.filter(lead => {
+        const fullName = `${lead.First_Name} ${lead.Last_Name}`;
+        return fullName.toLowerCase().includes(searchTerm.toLowerCase());
+    });
 
     const schedulePromise = ZOHO.CRM.API.getAllRecords({
         Entity: "Shift_Schedule",
@@ -713,11 +719,11 @@ function fetchAndPopulateSchedulesAndTimeOff(leads) {
             console.log('Schedules:', schedules);
             console.log('Time-off records:', timeOffRecords);
 
-            populateCalendarBody(leads, schedules, timeOffRecords);
+            populateCalendarBody(filteredLeads, schedules, timeOffRecords);
         })
         .catch(function(error) {
             console.error('Error fetching schedules or time-off records:', error);
-            populateCalendarBody(leads, [], []);
+            populateCalendarBody([], [], []);
         });
 }
 
@@ -740,6 +746,7 @@ function insertTimeOffRecord(tempId, cellDate) {
         })
         .catch(function(error) {
             console.error('Error inserting time off record:', error);
+            searchLeads(searchTerm);
         });
 }
 // Insert the new function here
@@ -767,6 +774,7 @@ function createShiftScheduleRecord(tempId, scheduleName, startDate, startTime, e
             } else {
                 console.error('Error creating Shift Schedule Record:', response.data);
                 alert("Failed to create Shift Schedule Record: " + (response.data[0].message || "Unknown error"));
+                searchLeads(searchTerm);
             }
         })
        .catch(function(error) {
