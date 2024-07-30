@@ -50,7 +50,7 @@ function createThreeDotsButton() {
     return threeDotsButton;
 }
 
-function createUnavailabilityOptions(tempId, cellDate) {
+function createUnavailabilityOptions(tempId, cellDate, lead) {
     let options = document.createElement('div');
     options.className = 'unavailability-options';
     options.style.display = 'none';
@@ -649,7 +649,7 @@ function populateCalendarBody(leads, schedules, timeOffRecords) {
                 threeDotsButton.addEventListener('click', handleThreeDotsButtonClick);
                 cell.appendChild(threeDotsButton);
 
-                let unavailabilityOptions = createUnavailabilityOptions(lead.id, cellDate);
+                let unavailabilityOptions = createUnavailabilityOptions(lead.id, cellDate, lead);
                 cell.appendChild(unavailabilityOptions);
             }
 
