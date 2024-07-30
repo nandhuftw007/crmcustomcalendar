@@ -883,8 +883,60 @@ function markUnavailableHourly(tempId, cellDate) {
         });
     }
 }
+let searchTerm = '';
 
+function searchLeads(searchTerm) {
+    ZOHO.CRM.API.getAllRecords({ Entity: "Leads", sort_order: "desc", per_page: 200 })
+        .then(function(response) {
+            if (response.data && response.data.length > 0) {
+                const leads = response.data.map(lead => ({
+                    id: lead.id,
+                    First_Name: lead.First_Name,
+                    Last_Name: lead.Last_Name
+                }));
 
+                // Filter leads based on the search term
+                const filteredLeads = leads.filter(lead => {
+                    const fullName = `${lead.First_Name} ${lead.Last_Name}`;
+                    return fullName.toLowerCase().includes(searchTerm.toLowerCase());
+                });
+
+                // Update the calendar with the filtered leads
+                fetchAndPopulateSchedulesAndTimeOff(filteredLeads);
+            } else {
+                console.log("No leads found.");
+                populateCalendarBody([], [], []);
+            }
+        })
+        .catch(function(error) {
+            console.error('Error fetching leads:', error);
+            populateCalendarBody([], [], []);
+        });
+}
+
+// Add an event listener to the search input field
+document.getElementById('searchInput').addEventListener('input', function(event) {
+    searchTerm = event.target.value;
+    searchLeads(searchTerm);
+});
+
+document.getElementById('prevWeek').addEventListener('click', function() {
+    currentDate.setDate(currentDate.getDate() - 7);
+    populateCalendarHeader();
+    searchLeads(searchTerm); // Apply the search filter
+});
+
+document.getElementById('nextWeek').addEventListener('click', function() {
+    currentDate.setDate(currentDate.getDate() + 7);
+    populateCalendarHeader();
+    searchLeads(searchTerm); // Apply the search filter
+});
+
+document.getElementById('currentWeek').addEventListener('click', function() {
+    currentDate = new Date(today);
+    populateCalendarHeader();
+    searchLeads(searchTerm); // Apply the search filter
+});
 
 $(document).ready(function() {
     ZOHO.embeddedApp.on("PageLoad", function(data) {
@@ -894,24 +946,7 @@ $(document).ready(function() {
 
     ZOHO.embeddedApp.init();
 
-    document.getElementById('prevWeek').addEventListener('click', function() {
-        currentDate.setDate(currentDate.getDate() - 7);
-        populateCalendarHeader();
-        fetchAndPopulateCalendar();
-    });
-
-    document.getElementById('nextWeek').addEventListener('click', function() {
-        currentDate.setDate(currentDate.getDate() + 7);
-        populateCalendarHeader();
-        fetchAndPopulateCalendar();
-    });
-
-    document.getElementById('currentWeek').addEventListener('click', function() {
-        currentDate = new Date(today);
-        populateCalendarHeader();
-        fetchAndPopulateCalendar();
-    });
-
+ 
     document.addEventListener('click', function(event) {
         let options = document.querySelectorAll('.unavailability-options');
         options.forEach(option => {
