@@ -80,9 +80,249 @@ function createUnavailabilityOptions(tempId, cellDate) {
     addScheduleButton.dataset.tempId = tempId;
     addScheduleButton.dataset.cellDate = cellDate;
     addScheduleButton.addEventListener('click', function() {
-        // Implement your add schedule logic here
-        alert(`Add schedule for Temp ID: ${this.dataset.tempId} on ${this.dataset.cellDate}`);
-        options.style.display = 'none';
+                      // Call the API to fetch Accounts
+                      ZOHO.CRM.API.getAllRecords({
+                        Entity: "Accounts",
+                        sort_order: "asc",
+                        per_page: 200
+                      })
+                      .then(function(response) {
+                        if (response.data && response.data.length > 0) {
+                          const accounts = response.data.map(account => ({
+                            id: account.id,
+                            Account_Name: account.Account_Name
+                          }));
+                  
+                          // Create a popup to display the account names
+                          let popup = document.createElement("div");
+                          popup.className = "popup";
+                          popup.style.position = "absolute";
+                          popup.style.top = "50%";
+                          popup.style.left = "50%";
+                          popup.style.transform = "translate(-50%, -50%)";
+                          popup.style.background = "white";
+                          popup.style.padding = "20px";
+                          popup.style.border = "1px solid #ccc";
+                          popup.style.borderRadius = "5px";
+                          popup.style.boxShadow = "0 0 10px rgba(0, 0, 0, 0.2)";
+                          popup.style.maxHeight = "300px";
+                          popup.style.overflowY = "auto";
+                  
+                          let popupContent = "";
+                          accounts.forEach(function(account) {
+                            popupContent += `
+                              <p>
+                                <input type="radio" name="account" value="${account.id}"> ${account.Account_Name}
+                              </p>
+                            `;
+                          });
+                  
+                          popupContent += `
+                            <button class="next-button">Next</button>
+                            <button class="cancel-button">Cancel</button>
+                          `;
+                  
+                          popup.innerHTML = popupContent;
+                  
+                          // Add the popup to the page
+                          document.body.appendChild(popup);
+                  
+                          // Add a click event listener to the next button
+                          let nextButton = popup.querySelector(".next-button");
+                          nextButton.addEventListener("click", function() {
+                            // Get the selected account ID
+                            let selectedAccountId = popup.querySelector('input[name="account"]:checked').value;
+                            console.log("Selected account ID:", selectedAccountId);
+                  
+                            // Call the API to fetch Deals for the selected account
+                            ZOHO.CRM.API.getAllRecords({
+                              Entity: "Deals",
+                              Criteria: "Account_Name.id:equals:" + selectedAccountId,
+                              sort_order: "asc",
+                              per_page: 200
+                            })
+                            .then(function(response) {
+                              if (response.data && response.data.length > 0) {
+                                const deals = response.data.map(deal => ({
+                                  id: deal.id,
+                                  Deal_Name: deal.Deal_Name
+                                }));
+                  
+                                // Create a new popup to display the deal names
+                                let dealPopup = document.createElement("div");
+                                dealPopup.className = "popup";
+                                dealPopup.style.position = "absolute";
+                                dealPopup.style.top = "50%";
+                                dealPopup.style.left = "50%";
+                                dealPopup.style.transform = "translate(-50%, -50%)";
+                                dealPopup.style.background = "white";
+                                dealPopup.style.padding = "20px";
+                                dealPopup.style.border = "1px solid #ccc";
+                                dealPopup.style.borderRadius = "5px";
+                                dealPopup.style.boxShadow = "0 0 10px rgba(0, 0, 0, 0.2)";
+                                dealPopup.style.maxHeight = "300px";
+                                dealPopup.style.overflowY = "auto";
+                  
+                                let dealPopupContent = "";
+                                deals.forEach(function(deal) {
+                                  dealPopupContent += `
+                                    <p>
+                                      <input type="radio" name="deal" value="${deal.id}"> ${deal.Deal_Name}
+                                    </p>
+                                  `;
+                                });
+                  
+                                dealPopupContent += `
+                                  <button class="select-button">Select</button>
+                                  <button class="cancel-button">Cancel</button>
+                                `;
+                  
+                                dealPopup.innerHTML = dealPopupContent;
+                  
+                                // Add the deal popup to the page
+                                document.body.appendChild(dealPopup);
+                  
+                                // Add a click event listener to the select button
+                                let selectButton = dealPopup.querySelector(".select-button");
+                                selectButton.addEventListener("click", function() {
+                                  // Get the selected deal ID
+                                  let selectedDealId = dealPopup.querySelector('input[name="deal"]:checked').value;
+                                  console.log("Selected deal ID:", selectedDealId);
+                  
+                                  // Create a new popup to input schedule details
+                                  let schedulePopup = document.createElement("div");
+                                  schedulePopup.className = "popup";
+                                  schedulePopup.style.position = "absolute";
+                                  schedulePopup.style.top = "50%";
+                                  schedulePopup.style.left = "50%";
+                                  schedulePopup.style.transform = "translate(-50%, -50%)";
+                                  schedulePopup.style.background = "white";
+                                  schedulePopup.style.padding = "20px";
+                                  schedulePopup.style.border = "1px solid #ccc";
+                                  schedulePopup.style.borderRadius = "5px";
+                                  schedulePopup.style.boxShadow = "0 0 10px rgba(0, 0, 0, 0.2)";
+                                  schedulePopup.style.maxHeight = "300px";
+                                  schedulePopup.style.overflowY = "auto";
+                  
+                                  let schedulePopupContent = `
+                                    <p>Schedule Name: <input type="text" id="schedule-name"></p>
+                                    <p>Start Date: <input type="date" id="start-date"></p>
+                                    <p>Start Time: <input type="time" id="start-time"></p>
+                                    <p>End Date: <input type="date" id="end-date"></p>
+                                    <p>End Time: <input type="time" id="end-time"></p>
+                                    <p>
+                                        <strong>Frequency:</strong><br><br>
+                                        <input type="checkbox" id="Daily" name="frequency[]" value="Daily">
+                                        <label for="Daily">Daily</label><br>
+
+                                        <input type="checkbox" id="Weekdays" name="frequency[]" value="Weekdays">
+                                        <label for="Weekdays">Weekdays</label><br>
+
+                                        <input type="checkbox" id="Monday" name="frequency[]" value="Monday">
+                                        <label for="Monday">Monday</label><br>
+
+                                        <input type="checkbox" id="Tuesday" name="frequency[]" value="Tuesday">
+                                        <label for="Tuesday">Tuesday</label><br>
+
+                                        <input type="checkbox" id="Wednesday" name="frequency[]" value="Wednesday">
+                                        <label for="Wednesday">Wednesday</label><br>
+
+                                        <input type="checkbox" id="Thursday" name="frequency[]" value="Thursday">
+                                        <label for="Thursday">Thursday</label><br>
+
+                                        <input type="checkbox" id="Friday" name="frequency[]" value="Friday">
+                                        <label for="Friday">Friday</label><br>
+
+                                        <input type="checkbox" id="Saturday" name="frequency[]" value="Saturday">
+                                        <label for="Saturday">Saturday</label><br>
+                                    </p>
+                                    <button class="create-button">Create</button>
+                                    <button class="cancel-button">Cancel</button>
+                                  `;
+                  
+                                  schedulePopup.innerHTML = schedulePopupContent;
+                  
+                                  // Add the schedule popup to the page
+                                  document.body.appendChild(schedulePopup);
+                  
+                                  // Add a click event listener to the create button
+                                  let createButton = schedulePopup.querySelector(".create-button");
+                                    createButton.addEventListener("click", function() {
+                                        let tempId = lead.id;
+                                        // Get the schedule details
+                                        let scheduleName = document.getElementById("schedule-name").value;
+                                        let startDate = document.getElementById("start-date").value;
+                                        let startTime = document.getElementById("start-time").value;
+                                        let endDate = document.getElementById("end-date").value;
+                                        let endTime = document.getElementById("end-time").value;
+
+                                        let frequency = [];
+                                        let checkboxes = document.getElementsByName("frequency[]");
+                                        for (let i = 0; i < checkboxes.length; i++) {
+                                            if (checkboxes[i].checked) {
+                                                frequency.push(checkboxes[i].value);
+                                            }
+                                        }
+
+                                        // Get the temp ID from the row
+                                        //let tempId = document.querySelector(`td[data-temp-id]`).dataset.tempId;
+
+                                        console.log(`Temp ID: ${tempId}`);
+                                        console.log(`Schedule Name: ${scheduleName}`);
+                                        console.log(`Start Date: ${startDate}`);
+                                        console.log(`Start Time: ${startTime}`);
+                                        console.log(`End Date: ${endDate}`);
+                                        console.log(`End Time: ${endTime}`);
+                                        console.log(`Frequency: ${frequency}`);
+
+                                        // Call the createShiftScheduleRecord function
+                                        createShiftScheduleRecord(tempId, scheduleName, startDate, startTime, endDate, endTime, frequency, selectedAccountId, selectedDealId);
+
+                                        // Close the popups
+                                        dealPopup.remove();
+                                        schedulePopup.remove();
+                                        popup.remove();
+                                    });
+                                  // Add a click event listener to the cancel button
+                                  let cancelButton = schedulePopup.querySelector(".cancel-button");
+                                  cancelButton.addEventListener("click", function() {
+                                    // Close the popups
+                                    dealPopup.remove();
+                                    schedulePopup.remove();
+                                    popup.remove();
+                                  });
+                                });
+                  
+                                // Add a click event listener to the cancel button
+                                let cancelButton = dealPopup.querySelector(".cancel-button");
+                                cancelButton.addEventListener("click", function() {
+                                  // Close the popups
+                                  dealPopup.remove();
+                                  popup.remove();
+                                });
+                              } else {
+                                console.log("No deals found for the selected account");
+                              }
+                            })
+                            .catch(function(error) {
+                              console.error("Error fetching deals:", error);
+                            });
+                          });
+                  
+                          // Add a click event listener to the cancel button
+                          let cancelButton = popup.querySelector(".cancel-button");
+                          cancelButton.addEventListener("click", function() {
+                            // Close the popup
+                            popup.remove();
+                          });
+                        } else {
+                          console.log("No accounts found.");
+                        }
+                      })
+                      .catch(function(error) {
+                        console.error("Error fetching accounts:", error);
+                      });
+            
     });
     options.appendChild(addScheduleButton);
 
