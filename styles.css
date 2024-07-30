@@ -74,6 +74,28 @@ body {
     box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
 }
 
+/* Search Box Styles */
+/* Search Box Styles */
+#searchInput {
+    width: 100%; /* Full width of the container */
+    max-width: 300px; /* Limit the maximum width */
+    padding: 10px; /* Add padding for better touch and click experience */
+    margin-bottom: 20px; /* Space below the input */
+    border: 1px solid #ddd; /* Light border */
+    border-radius: 5px; /* Rounded corners */
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1); /* Light shadow for depth */
+    font-size: 14px; /* Adjust font size */
+    transition: border-color 0.3s, box-shadow 0.3s; /* Smooth transition for focus effect */
+}
+
+#searchInput:focus {
+    border-color: #333; /* Darker border color on focus */
+    box-shadow: 0 0 15px rgba(0, 0, 0, 0.2); /* Neutral shadow on focus */
+    outline: none; /* Remove default outline */
+}
+
+
+
 /* Calendar Table */
 
 #calendarTable {
