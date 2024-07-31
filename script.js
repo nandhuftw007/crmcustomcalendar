@@ -347,33 +347,23 @@ function populateCalendarBody(leads, schedules, timeOffRecords) {
 
             if (unavailabilityRecord) {
                 if (unavailabilityRecord.Unavailability === 'All Day') {
-                    cell.innerHTML = "Unavailable All Day";
+                    let unavailabilityHtml = `
+                        <div class="unavailable-box">
+                            <p>Unavailable All Day</p>
+                        </div>
+                    `;
+                    cell.innerHTML = unavailabilityHtml;
                     cell.classList.add('unavailable');
                 } else if (unavailabilityRecord.Unavailability === 'Hourly') {
                     let startTimeString = moment(unavailabilityRecord.From_Date_Time).format('hh:mm a');
                     let endTimeString = moment(unavailabilityRecord.To_Date).format('hh:mm a');
                     
-                    // Calculate the position of the hourly unavailability within the cell
-                    let startHour = moment(unavailabilityRecord.From_Date_Time).hour();
-                    let startMinute = moment(unavailabilityRecord.From_Date_Time).minute();
-                    let endHour = moment(unavailabilityRecord.To_Date).hour();
-                    let endMinute = moment(unavailabilityRecord.To_Date).minute();
-
-                    // Create a div for hourly unavailability and set its position
-                    let hourlyUnavailabilityDiv = document.createElement('div');
-                    hourlyUnavailabilityDiv.className = 'hourly-unavailable';
-                    hourlyUnavailabilityDiv.innerHTML = `Unavailable (${startTimeString} - ${endTimeString})`;
-
-                    // Calculate top position based on start time
-                    let startPosition = ((startHour * 60 + startMinute) / (24 * 60)) * 100;
-                    let endPosition = ((endHour * 60 + endMinute) / (24 * 60)) * 100;
-                    let duration = endPosition - startPosition;
-
-                    hourlyUnavailabilityDiv.style.position = 'absolute';
-                    hourlyUnavailabilityDiv.style.top = `${startPosition}%`;
-                    hourlyUnavailabilityDiv.style.height = `${duration}%`;
-
-                    cell.appendChild(hourlyUnavailabilityDiv);
+                    let unavailabilityHtml = `
+                        <div class="unavailable-box">
+                            <p>Unavailable (${startTimeString} - ${endTimeString})</p>
+                        </div>
+                    `;
+                    cell.innerHTML = unavailabilityHtml;
                     cell.classList.add('unavailable');
                 }
             } else {
@@ -850,14 +840,14 @@ function markUnavailableHourly(tempId, cellDate) {
                 let formattedCellDate = moment(cellDate).format('YYYY-MM-DD');
                 let formattedStartTime = moment(`${formattedCellDate} ${startTime}`, 'YYYY-MM-DD HH:mm').format('YYYY-MM-DDTHH:mm:ss');
                 let formattedEndTime = moment(`${formattedCellDate} ${endTime}`, 'YYYY-MM-DD HH:mm').format('YYYY-MM-DDTHH:mm:ss');
-            
+                
                 var recordData = {
                     "Name1": tempId,
                     "Unavailability": "Hourly",
                     "From_Date_Time": formattedStartTime,
                     "To_Date": formattedEndTime
                 };
-            
+                
                 ZOHO.CRM.API.insertRecord({ Entity: "Time_Off", APIData: recordData, Trigger: [] })
                   .then(function(data) {
                       console.log("Insert Response: ", data);
@@ -866,7 +856,12 @@ function markUnavailableHourly(tempId, cellDate) {
                           let cellSelector = `td[data-time*='${moment(cellDate).format('MMM D, YYYY')}'][data-temp-id='${tempId}']`;
                           let cell = document.querySelector(cellSelector);
                           if (cell) {
-                              cell.innerHTML = `Unavailable (${startTime} - ${endTime})`;
+                              let unavailabilityHtml = `
+                                  <div class="unavailable-box">
+                                      <p>Unavailable (${startTime} - ${endTime})</p>
+                                  </div>
+                              `;
+                              cell.innerHTML = unavailabilityHtml;
                               cell.classList.add('unavailable'); // Mark the cell as unavailable
                           }
                           fetchAndPopulateCalendar(); // Call this function to re-render the calendar
