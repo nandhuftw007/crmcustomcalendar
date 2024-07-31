@@ -326,7 +326,7 @@ function populateCalendarBody(leads, schedules, timeOffRecords) {
         rowHeader.className = 'rowHeader';
         rowHeader.innerText = `${lead.First_Name} ${lead.Last_Name} (${lead.id})`;
         row.appendChild(rowHeader);
-    
+
         weekDates.forEach(dateString => {
             let cell = document.createElement('td');
             cell.className = 'cell';
@@ -355,6 +355,8 @@ function populateCalendarBody(leads, schedules, timeOffRecords) {
                                 <p>Unavailable All Day</p>
                             </div>
                         `;
+                        // Add a class to the cell if it's unavailable all day
+                        cell.classList.add('unavailable');
                     } else if (unavailabilityRecord.Unavailability === 'Hourly') {
                         let startTimeString = moment(unavailabilityRecord.From_Date_Time).format('hh:mm a');
                         let endTimeString = moment(unavailabilityRecord.To_Date).format('hh:mm a');
@@ -366,50 +368,51 @@ function populateCalendarBody(leads, schedules, timeOffRecords) {
                         `;
                     }
                     cell.innerHTML += unavailabilityHtml;
-                    cell.classList.add('unavailable');
                 });
 
-                // Render schedules even if there is an unavailability record
-                let scheduleHtml = '';
-                schedules.forEach(schedule => {
-                    if (schedule.Schedule_For_Temp && schedule.Schedule_For_Temp.id === lead.id) {
-                        let jobName = schedule.Job ? schedule.Job.name : "No Job Assigned";
-                        let daysInWeek = schedule.Days_in_the_Week;
-                        let startDateTime = new Date(schedule.Start_Date_and_Work_Start_Time);
-                        let endDateTime = new Date(schedule.End_Date_and_Work_End_Time);
-                        let prevDayDateTime = new Date(startDateTime);
-                        prevDayDateTime.setDate(prevDayDateTime.getDate() - 0); // Adjust to check previous day
+                // Render schedules only if the cell doesn't have the 'unavailable' class
+                if (!cell.classList.contains('unavailable')) {
+                    let scheduleHtml = '';
+                    schedules.forEach(schedule => {
+                        if (schedule.Schedule_For_Temp && schedule.Schedule_For_Temp.id === lead.id) {
+                            let jobName = schedule.Job ? schedule.Job.name : "No Job Assigned";
+                            let daysInWeek = schedule.Days_in_the_Week;
+                            let startDateTime = new Date(schedule.Start_Date_and_Work_Start_Time);
+                            let endDateTime = new Date(schedule.End_Date_and_Work_End_Time);
+                            let prevDayDateTime = new Date(startDateTime);
+                            prevDayDateTime.setDate(prevDayDateTime.getDate() - 0); // Adjust to check previous day
 
-                        let selectedDays = [];
-                        if (daysInWeek.includes('Daily')) {
-                            selectedDays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-                        } else if (daysInWeek.includes('Weekdays')) {
-                            selectedDays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
-                        } else {
-                            selectedDays = daysInWeek;
-                        }
+                            let selectedDays = [];
+                            if (daysInWeek.includes('Daily')) {
+                                selectedDays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+                            } else if (daysInWeek.includes('Weekdays')) {
+                                selectedDays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
+                            } else {
+                                selectedDays = daysInWeek;
+                            }
 
-                        if (selectedDays.includes(dayOfWeek)) {
-                            if (startDateTime <= cellDate && endDateTime >= cellDate) {
-                                let startTimeString = formatTimeTo12Hour(startDateTime);
-                                let endTimeString = formatTimeTo12Hour(endDateTime);
-                                if (cellDate.toDateString() === startDateTime.toDateString()) {
-                                    scheduleHtml += `<div class="schedule-box"><p>${jobName}</p><p>${startTimeString} - ${endTimeString}</p></div>`;
-                                } else if (cellDate > startDateTime && cellDate < endDateTime) {
+                            if (selectedDays.includes(dayOfWeek)) {
+                                if (startDateTime <= cellDate && endDateTime >= cellDate) {
+                                    let startTimeString = formatTimeTo12Hour(startDateTime);
+                                    let endTimeString = formatTimeTo12Hour(endDateTime);
+                                    if (cellDate.toDateString() === startDateTime.toDateString()) {
+                                        scheduleHtml += `<div class="schedule-box"><p>${jobName}</p><p>${startTimeString} - ${endTimeString}</p></div>`;
+                                    } else if (cellDate > startDateTime && cellDate < endDateTime) {
+                                        scheduleHtml += `<div class="schedule-box"><p>${jobName}</p><p>${startTimeString} - ${endTimeString}</p></div>`;
+                                    }
+                                }
+
+                                if (cellDate.toDateString() === prevDayDateTime.toDateString()) {
+                                    let startTimeString = formatTimeTo12Hour(startDateTime);
+                                    let endTimeString = formatTimeTo12Hour(endDateTime);
                                     scheduleHtml += `<div class="schedule-box"><p>${jobName}</p><p>${startTimeString} - ${endTimeString}</p></div>`;
                                 }
                             }
-
-                            if (cellDate.toDateString() === prevDayDateTime.toDateString()) {
-                                let startTimeString = formatTimeTo12Hour(startDateTime);
-                                let endTimeString = formatTimeTo12Hour(endDateTime);
-scheduleHtml += `<div class="schedule-box"><p>${jobName}</p><p>${startTimeString} - ${endTimeString}</p></div>`;
-                            }
                         }
-                    }
-                });
+                    });
 
-                cell.innerHTML += scheduleHtml;
+                    cell.innerHTML += scheduleHtml;
+                }
             } else {
                 // Render schedules
                 let scheduleHtml = '';
