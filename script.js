@@ -569,7 +569,26 @@ function populateCalendarBody(leads, schedules, timeOffRecords) {
                                                   <p>Start Time: <input type="time" id="start-time"></p>
                                                   <p>End Date: <input type="date" id="end-date"></p>
                                                   <p>End Time: <input type="time" id="end-time"></p>
-                                                  <button class="save-button">Save</button>
+                                                  <p>
+                                                      <strong>Frequency:</strong><br>
+                                                      <input type="checkbox" id="Daily" name="frequency[]" value="Daily">
+                                                      <label for="Daily">Daily</label><br>
+                                                      <input type="checkbox" id="Weekdays" name="frequency[]" value="Weekdays">
+                                                      <label for="Weekdays">Weekdays</label><br>
+                                                      <input type="checkbox" id="Monday" name="frequency[]" value="Monday">
+                                                      <label for="Monday">Monday</label><br>
+                                                      <input type="checkbox" id="Tuesday" name="frequency[]" value="Tuesday">
+                                                      <label for="Tuesday">Tuesday</label><br>
+                                                      <input type="checkbox" id="Wednesday" name="frequency[]" value="Wednesday">
+                                                      <label for="Wednesday">Wednesday</label><br>
+                                                      <input type="checkbox" id="Thursday" name="frequency[]" value="Thursday">
+                                                      <label for="Thursday">Thursday</label><br>
+                                                      <input type="checkbox" id="Friday" name="frequency[]" value="Friday">
+                                                      <label for="Friday">Friday</label><br>
+                                                      <input type="checkbox" id="Saturday" name="frequency[]" value="Saturday">
+                                                      <label for="Saturday">Saturday</label><br>
+                                                  </p>
+                                                  <button class="create-button">Create</button>
                                                   <button class="cancel-button">Cancel</button>
                                                 `;
                     
@@ -578,70 +597,88 @@ function populateCalendarBody(leads, schedules, timeOffRecords) {
                                                 // Add the schedule popup to the page
                                                 document.body.appendChild(schedulePopup);
                     
-                                                // Add a click event listener to the save button
-                                                let saveButton = schedulePopup.querySelector(".save-button");
-                                                saveButton.addEventListener("click", function() {
-                                                    // Collect schedule details
+                                                // Add a click event listener to the create button
+                                                let createButton = schedulePopup.querySelector(".create-button");
+                                                createButton.addEventListener("click", function() {
+                                                    let tempId = lead.id;
+                                                    // Get the schedule details
                                                     let scheduleName = document.getElementById("schedule-name").value;
                                                     let startDate = document.getElementById("start-date").value;
                                                     let startTime = document.getElementById("start-time").value;
                                                     let endDate = document.getElementById("end-date").value;
                                                     let endTime = document.getElementById("end-time").value;
                     
-                                                    let startDateTime = new Date(`${startDate}T${startTime}`);
-                                                    let endDateTime = new Date(`${endDate}T${endTime}`);
+                                                    let frequency = [];
+                                                    let checkboxes = document.getElementsByName("frequency[]");
+                                                    for (let i = 0; i < checkboxes.length; i++) {
+                                                        if (checkboxes[i].checked) {
+                                                            frequency.push(checkboxes[i].value);
+                                                        }
+                                                    }
                     
-                                                    // Save the schedule (dummy implementation)
-                                                    console.log("Saving schedule:", {
-                                                        name: scheduleName,
-                                                        startDateTime: startDateTime,
-                                                        endDateTime: endDateTime,
-                                                        dealId: selectedDealId
-                                                    });
+                                                    console.log(`Temp ID: ${tempId}`);
+                                                    console.log(`Schedule Name: ${scheduleName}`);
+                                                    console.log(`Start Date: ${startDate}`);
+                                                    console.log(`Start Time: ${startTime}`);
+                                                    console.log(`End Date: ${endDate}`);
+                                                    console.log(`End Time: ${endTime}`);
+                                                    console.log(`Frequency: ${frequency}`);
                     
-                                                    // Close all popups
-                                                    document.querySelectorAll(".popup").forEach(popup => popup.remove());
-                                                    document.querySelector(".overlay").remove();
+                                                    // Call the createShiftScheduleRecord function
+                                                    createShiftScheduleRecord(tempId, scheduleName, startDate, startTime, endDate, endTime, frequency, selectedAccountId, selectedDealId);
+                    
+                                                    // Close the popups
+                                                    overlay.remove();
+                                                    dealPopup.remove();
+                                                    schedulePopup.remove();
+                                                    popup.remove();
                                                 });
                     
                                                 // Add a click event listener to the cancel button
-                                                let cancelButtons = schedulePopup.querySelectorAll(".cancel-button");
-                                                cancelButtons.forEach(button => {
-                                                    button.addEventListener("click", function() {
-                                                        document.querySelectorAll(".popup").forEach(popup => popup.remove());
-                                                        document.querySelector(".overlay").remove();
-                                                    });
+                                                let cancelButton = schedulePopup.querySelector(".cancel-button");
+                                                cancelButton.addEventListener("click", function() {
+                                                    // Close the popups
+                                                    overlay.remove();
+                                                    dealPopup.remove();
+                                                    schedulePopup.remove();
+                                                    popup.remove();
                                                 });
                                             });
                     
                                             // Add a click event listener to the cancel button
-                                            let cancelButtons = dealPopup.querySelectorAll(".cancel-button");
-                                            cancelButtons.forEach(button => {
-                                                button.addEventListener("click", function() {
-                                                    document.querySelectorAll(".popup").forEach(popup => popup.remove());
-                                                    document.querySelector(".overlay").remove();
-                                                });
+                                            let cancelButton = dealPopup.querySelector(".cancel-button");
+                                            cancelButton.addEventListener("click", function() {
+                                                // Close the popups
+                                                overlay.remove();
+                                                dealPopup.remove();
+                                                popup.remove();
                                             });
                                         } else {
-                                            alert("No deals found for the selected account.");
+                                            console.log("No deals found for the selected account");
                                         }
+                                    })
+                                    .catch(function(error) {
+                                        console.error("Error fetching deals:", error);
                                     });
                                 });
                     
                                 // Add a click event listener to the cancel button
-                                let cancelButtons = popup.querySelectorAll(".cancel-button");
-                                cancelButtons.forEach(button => {
-                                    button.addEventListener("click", function() {
-                                        document.querySelectorAll(".popup").forEach(popup => popup.remove());
-                                        document.querySelector(".overlay").remove();
-                                    });
+                                let cancelButton = popup.querySelector(".cancel-button");
+                                cancelButton.addEventListener("click", function() {
+                                    // Close the popups
+                                    overlay.remove();
+                                    popup.remove();
                                 });
                             } else {
-                                alert("No accounts found.");
+                                console.log("No accounts found.");
                             }
+                        })
+                        .catch(function(error) {
+                            console.error("Error fetching accounts:", error);
                         });
                     });
-
+                    
+                    
                     cell.appendChild(plusButton);
                 }
             }
