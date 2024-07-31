@@ -27,6 +27,19 @@ body {
     margin: 0;
 }
 
+.unavailable-box {
+    background-color: #fcabab;
+    border: 1px solid #ffc9c9;
+    border-radius: 5px;
+    padding: 5px;
+    margin: 5px 0;
+    text-align: left;
+}
+
+.unavailable-box p {
+    margin: 0;
+}
+
 /* Calendar Container */
 
 #calendar {
@@ -190,10 +203,7 @@ tbody td {
     background-color: #eee;
 }
 
-.unavailable {
-    background-color: #ffa5a0; 
-    color: #000000;
-}
+
 
 .three-dots-button {
     position: absolute;
