@@ -825,14 +825,10 @@ function checkForOverlappingUnavailability(tempId, startDate, startTime, endDate
         const existingStart = moment(record.From_Date_Time);
         const existingEnd = moment(record.To_Date);
 
-        // Check if the new schedule overlaps with the existing unavailability record
-        if (newStart.isBetween(existingStart, existingEnd, 'minute', '[]') ||
-            newEnd.isBetween(existingStart, existingEnd, 'minute', '[]') ||
-            (existingStart.isBetween(newStart, newEnd, 'minute', '[]') && existingEnd.isBetween(newStart, newEnd, 'minute', '[]'))) {
+        if (isOverlapping(newStart, newEnd, existingStart, existingEnd)) {
             return true;
         }
     }
-
     return false;
 }
 
