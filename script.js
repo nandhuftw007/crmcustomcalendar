@@ -803,12 +803,12 @@ function checkForOverlappingSchedules(tempId, startDate, startTime, endDate, end
     const newEnd = moment(`${endDate} ${endTime}`, 'YYYY-MM-DD HH:mm');
 
     for (let schedule of schedules) {
-        if (schedule.Schedule_For_Temp !== tempId) continue;
+        if (schedule.Schedule_For_Temp.id !== tempId) continue;
 
         const existingStart = moment(schedule.Start_Date_and_Work_Start_Time);
         const existingEnd = moment(schedule.End_Date_and_Work_End_Time);
 
-        if (newStart.isBefore(existingEnd) && newEnd.isAfter(existingStart)) {
+        if (isOverlapping(newStart, newEnd, existingStart, existingEnd)) {
             return true;
         }
     }
@@ -820,12 +820,12 @@ function checkForOverlappingUnavailability(tempId, startDate, startTime, endDate
     const newEnd = moment(`${endDate} ${endTime}`, 'YYYY-MM-DD HH:mm');
 
     for (let record of timeOffRecords) {
-        if (record.Name1 !== tempId) continue;
+        if (record.Name1.id !== tempId) continue;
 
         const existingStart = moment(record.From_Date_Time);
         const existingEnd = moment(record.To_Date);
 
-        if (newStart.isBefore(existingEnd) && newEnd.isAfter(existingStart)) {
+        if (isOverlapping(newStart, newEnd, existingStart, existingEnd)) {
             return true;
         }
     }
@@ -836,32 +836,62 @@ function createShiftScheduleRecord(tempId, scheduleName, startDate, startTime, e
     const startDateTime = moment(`${startDate} ${startTime}`, 'YYYY-MM-DD HH:mm').toDate();
     const endDateTime = moment(`${endDate} ${endTime}`, 'YYYY-MM-DD HH:mm').toDate();
 
-    const shiftScheduleRecord = {
-        "Schedule_For_Temp": tempId,
-        "Client_Name": selectedAccountId,
-        "Job": selectedDealId,
-        "Name": scheduleName,
-        "Start_Date_and_Work_Start_Time": moment(startDateTime).format('YYYY-MM-DDTHH:mm:ssZ'), // Format as ISO 8601 string
-        "End_Date_and_Work_End_Time": moment(endDateTime).format('YYYY-MM-DDTHH:mm:ssZ'), // Format as ISO 8601 string
-        "Days_in_the_Week": frequency
-    };
+    // Fetch existing schedules and time off records
+    ZOHO.CRM.API.getAllRecords({ Entity: "Shift_Schedule", sort_order: "asc", sort_by: "Start_Date_and_Work_Start_Time" })
+        .then(function(response) {
+            const schedules = response.data;
 
-    ZOHO.CRM.API.insertRecord({ Entity: "Shift_Schedule", APIData: shiftScheduleRecord })
-       .then(function(response) {
-            console.log('Shift schedule record inserted successfully:', response); // Log the API response
-            if (response.data && response.data.length > 0 && response.data[0].code === "SUCCESS") {
-                console.log('Shift Schedule Record created successfully!');
-                alert("Shift Schedule Record created successfully!");
-                fetchAndPopulateCalendar(); // Refresh the calendar to show the updated data
-            } else {
-                console.error('Error creating Shift Schedule Record:', response.data);
-                alert("Failed to create Shift Schedule Record: " + (response.data[0].message || "Unknown error"));
-                searchLeads(searchTerm);
-            }
+            ZOHO.CRM.API.getAllRecords({ Entity: "Time_Off", sort_order: "asc", sort_by: "From_Date_Time" })
+                .then(function(response) {
+                    const timeOffRecords = response.data;
+
+                    if (checkForOverlappingSchedules(tempId, startDate, startTime, endDate, endTime, schedules)) {
+                        alert("Error: The schedule overlaps with an existing schedule.");
+                        return;
+                    }
+
+                    if (checkForOverlappingUnavailability(tempId, startDate, startTime, endDate, endTime, timeOffRecords)) {
+                        alert("Error: The schedule overlaps with an existing unavailability.");
+                        return;
+                    }
+
+                    const shiftScheduleRecord = {
+                        "Schedule_For_Temp": tempId,
+                        "Client_Name": selectedAccountId,
+                        "Job": selectedDealId,
+                        "Name": scheduleName,
+                        "Start_Date_and_Work_Start_Time": moment(startDateTime).format('YYYY-MM-DDTHH:mm:ssZ'), // Format as ISO 8601 string
+                        "End_Date_and_Work_End_Time": moment(endDateTime).format('YYYY-MM-DDTHH:mm:ssZ'), // Format as ISO 8601 string
+                        "Days_in_the_Week": frequency
+                    };
+
+                    ZOHO.CRM.API.insertRecord({ Entity: "Shift_Schedule", APIData: shiftScheduleRecord })
+                        .then(function(response) {
+                            console.log('Shift schedule record inserted successfully:', response); // Log the API response
+                            if (response.data && response.data.length > 0 && response.data[0].code === "SUCCESS") {
+                                console.log('Shift Schedule Record created successfully!');
+                                alert("Shift Schedule Record created successfully!");
+                                fetchAndPopulateCalendar(); // Refresh the calendar to show the updated data
+                            } else {
+                                console.error('Error creating Shift Schedule Record:', response.data);
+                                alert("Failed to create Shift Schedule Record: " + (response.data[0].message || "Unknown error"));
+                                searchLeads(searchTerm);
+                            }
+                        })
+                        .catch(function(error) {
+                            console.error('Error creating Shift Schedule Record:', error);
+                            alert('An error occurred while creating the Shift Schedule Record. Check the console for details.');
+                        });
+            
+                })
+                .catch(function(error) {
+                    console.error('Error fetching Time Off records:', error);
+                    alert('An error occurred while fetching Time Off records. Check the console for details.');
+                });
         })
-       .catch(function(error) {
-            console.error('Error creating Shift Schedule Record:', error);
-            alert('An error occurred while creating the Shift Schedule Record. Check the console for details.');
+        .catch(function(error) {
+            console.error('Error fetching Schedules:', error);
+            alert('An error occurred while fetching Schedules. Check the console for details.');
         });
 }
 
