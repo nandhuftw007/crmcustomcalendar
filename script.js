@@ -1,1114 +1,728 @@
-let currentDate = new Date();
-let today = new Date();
+document.addEventListener('DOMContentLoaded', function() {
+    var buttonsModal = document.getElementById('buttonsModal');
+    var tempModal = document.getElementById('tempModal');
+    var shiftModal = document.getElementById('shiftModal');
+    var fetchAccountsBtn = document.getElementById('fetchAccountsBtn');
+    var swapShiftsBtn = document.getElementById('swapShiftsBtn');
+    var swapTempsBtn = document.getElementById('swapTempsBtn');
+    var closeButtons = document.querySelectorAll('.close');
+    var tempData = [];
+    var shiftData = [];
+    var tempshiftData = [];
+    var selectedRecordId = null;
+    var selectedShiftIds = [];
+    var currentPage = 1;
+    var recordsPerPage = 10;
+    let maxSelections = 2;
 
-// Function to get the week's dates based on a given date
-function getWeekDates(date) {
-    const firstDayOfWeek = date.getDate() - date.getDay(); // Sunday as the first day of the week
-    let weekDates = [];
-    for (let i = 0; i < 7; i++) {
-        let day = new Date(date);
-        day.setDate(firstDayOfWeek + i);
-        weekDates.push(day.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }));
+    function closeModals() {
+        if (buttonsModal) buttonsModal.style.display = "none";
+        if (tempModal) tempModal.style.display = "none";
+        if (shiftModal) shiftModal.style.display = "none";
+
+        // Clear temporary data and reset state
+        tempData = [];
+        shiftData = [];
+        tempshiftData = [];
+        selectedRecordId = null;
+        selectedShiftIds = [];
+        currentPage = 1;
+
+        // Clear search boxes
+        if (document.getElementById('searchBox')) {
+            document.getElementById('searchBox').value = '';
+        }
+        if (document.getElementById('searchBoxShift')) {
+            document.getElementById('searchBoxShift').value = '';
+        }
+       
+
+        // Clear and reset any table data
+        if (document.getElementById('tempshiftContainer')) {
+            document.getElementById('tempshiftContainer').innerHTML = '';
+        }
+        if (document.getElementById('shiftContainer')) {
+            document.getElementById('shiftContainer').innerHTML = '';
+        }
+        
+        // Remove event listeners if needed
+        document.querySelectorAll('.shift-checkbox').forEach(checkbox => {
+            checkbox.removeEventListener('change', handleShiftSelection);
+        });
+
+        // Hide any submit buttons
+        toggleSubmitButtonVisibility();
+        toggleSubmitShiftButtonVisibility();
     }
-    return weekDates;
-}
 
-// Populate the calendar header with the week's dates
-function populateCalendarHeader() {
-    const weekDates = getWeekDates(new Date(currentDate));
-    const calendarHeader = document.getElementById('calendarHeader');
-    // Clear any existing headers
-    while (calendarHeader.firstChild) {
-        calendarHeader.removeChild(calendarHeader.firstChild);
+    function setupCloseButtons() {
+        closeButtons.forEach(function(button) {
+            button.onclick = function() {
+                closeModals();
+            }
+        });
     }
-    // Add corner cell
-    const cornerCell = document.createElement('th');
-    cornerCell.className = 'corner';
-    calendarHeader.appendChild(cornerCell);
-    // Add date headers
-    weekDates.forEach(date => {
-        const dateHeader = document.createElement('th');
-        dateHeader.className = 'colHeader';
-        dateHeader.innerText = date;
-        calendarHeader.appendChild(dateHeader);
-    });
-}
 
-function formatTimeTo12Hour(date) {
-    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
-}
+    setupCloseButtons();
 
-function getDayOfWeek(dayIndex) {
-    const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-    return days[dayIndex];
-}
+    window.onclick = function(event) {
+        if (event.target === buttonsModal || event.target === tempModal || event.target === shiftModal ) {
+            closeModals();
+        }
+    }
 
-function createThreeDotsButton() {
-    let threeDotsButton = document.createElement('button');
-    threeDotsButton.className = 'three-dots-button';
-    threeDotsButton.innerText = '...';
-    return threeDotsButton;
-}
-
-function createUnavailabilityOptions(tempId, cellDate, lead) {
-    let options = document.createElement('div');
-    options.className = 'unavailability-options';
-    options.style.display = 'none';
-
-    let allDayButton = document.createElement('button');
-    allDayButton.innerText = 'Mark Unavailable (All Day)';
-    allDayButton.dataset.tempId = tempId;
-    allDayButton.dataset.cellDate = cellDate;
-    allDayButton.addEventListener('click', function() {
-        insertTimeOffRecord(this.dataset.tempId, this.dataset.cellDate);
-        options.style.display = 'none';
-    });
-    options.appendChild(allDayButton);
-
-    let hourlyButton = document.createElement('button');
-    hourlyButton.innerText = 'Mark Unavailable (Hourly)';
-    hourlyButton.dataset.tempId = tempId;
-    hourlyButton.dataset.cellDate = cellDate;
-    hourlyButton.addEventListener('click', function() {
-        markUnavailableHourly(this.dataset.tempId, this.dataset.cellDate);
-        options.style.display = 'none';
-    });
-    options.appendChild(hourlyButton);
-
-    let addScheduleButton = document.createElement('button');
-    addScheduleButton.innerText = 'Add Schedule';
-    addScheduleButton.dataset.tempId = tempId;
-    addScheduleButton.dataset.cellDate = cellDate;
-    addScheduleButton.addEventListener('click', function() {
-        // Call the API to fetch Accounts
-        ZOHO.CRM.API.getAllRecords({
-            Entity: "Accounts",
-            sort_order: "asc",
-            per_page: 200
-        })
-        .then(function(response) {
-            if (response.data && response.data.length > 0) {
-                const accounts = response.data.map(account => ({
-                    id: account.id,
-                    Account_Name: account.Account_Name
-                }));
+    if (fetchAccountsBtn) {
+        fetchAccountsBtn.addEventListener('click', function() {
+            buttonsModal.style.display = "block"; // Show the buttons modal
+        });
+    }
+    if (swapTempsBtn) {
+        swapTempsBtn.addEventListener('click', function() {
+            console.log("Swap Temp Shifts button clicked");
+            buttonsModal.style.display = "none"; // Hide the buttons modal
+            tempModal.style.display = "block"; // Show the temp modal
     
-                // Create a backdrop for the popup
-                let backdrop = document.createElement("div");
-                backdrop.className = "overlay";
-                document.body.appendChild(backdrop);
+            ZOHO.CRM.API.getAllRecords({
+                Entity: "Shift_Schedule",
+                sort_order: "asc",
+                per_page: 200
+            }).then(function(response) {
+                console.log("API response received:", response);
     
-                // Create a popup to display the account names
-                let popup = document.createElement("div");
-                popup.className = "popup";
+                if (response.data && response.data.length > 0) {
+                    tempshiftData = response.data.map(shift => ({
+                        id: shift.id || '',
+                        Name: shift.Name || '',
+                        Start_Date_and_Work_Start_Time: shift.Start_Date_and_Work_Start_Time || '',
+                        End_Date_and_Work_End_Time: shift.End_Date_and_Work_End_Time || '',
+                        Days_in_the_Week: shift.Days_in_the_Week || '',
+                        Schedule_For_Temp: shift.Schedule_For_Temp || {} // Ensure it's an object
+                    }));
+                    console.log("Temp Shifts data processed:", tempshiftData);
     
-                let popupContent = `
-                  <h2>Select Client</h2>
-                `;
-                accounts.forEach(function(account) {
-                    popupContent += `
-                      <p>
-                        <input type="radio" name="account" value="${account.id}"> ${account.Account_Name}
-                      </p>
-                    `;
+                    displayshiftTempPage(currentPage);
+                } else {
+                    console.log("No temp shift data found");
+                }
+            }).catch(function(error) {
+                console.error("Error fetching temp shift data:", error);
+            });
+        });
+    }
+
+
+
+    
+
+    ////////////////////////////////
+    if (nextButtontemp) {
+        nextButtontemp.addEventListener('click', async function() {
+            buttonsModal.style.display = "none";
+            tempModal.style.display = "block";
+    
+            try {
+                // Fetch the details of the specific shift using the Shift ID
+                const shiftID = '6336174000001396001'; // Provided Shift ID
+                const shiftResponse = await ZOHO.CRM.API.getRecord({
+                    Entity: "Shift_Schedule",
+                    RecordID: shiftID
                 });
     
-                popupContent += `
-                  <button class="next-button">Next</button>
-                  <button class="cancel-button">Cancel</button>
-                `;
+                const providedShift = shiftResponse.data[0];
+                const providedShiftStartDate = moment(providedShift['Start_Date_and_Work_Start_Time']);
+                const providedShiftEndDate = moment(providedShift['End_Date_and_Work_End_Time']);
+                const providedShiftDays = providedShift['Days_in_the_Week'].map(day => day.toLowerCase());
+                const providedShiftStartTime = moment(providedShift['Start_Date_and_Work_Start_Time']).format('HH:mm');
+                const providedShiftEndTime = moment(providedShift['End_Date_and_Work_End_Time']).format('HH:mm');
     
-                popup.innerHTML = popupContent;
+                // Log the details of the provided shift
+                console.log("Shift provided:", {
+                    id: shiftID,
+                    Start_Date_and_Work_Start_Time: providedShiftStartDate.format('YYYY-MM-DD'),
+                    End_Date_and_Work_End_Time: providedShiftEndDate.format('YYYY-MM-DD'),
+                    Days_in_the_Week: providedShiftDays,
+                    Start_Time: providedShiftStartTime,
+                    End_Time: providedShiftEndTime
+                });
     
-                // Add the popup to the page
-                document.body.appendChild(popup);
+                // Fetch all shifts
+                const allShiftsResponse = await ZOHO.CRM.API.getAllRecords({
+                    Entity: "Shift_Schedule",
+                    sort_order: "asc",
+                    per_page: 200
+                });
     
-                // Add a click event listener to the next button
-                let nextButton = popup.querySelector(".next-button");
-                nextButton.addEventListener("click", function() {
-                    // Get the selected account ID
-                    let selectedAccountId = popup.querySelector('input[name="account"]:checked').value;
-                    console.log("Selected account ID:", selectedAccountId);
+                const allShifts = allShiftsResponse.data;
     
-                    // Call the API to fetch Deals for the selected account
-                    ZOHO.CRM.API.getAllRecords({
-                        Entity: "Deals",
-                        Criteria: "Account_Name.id:equals:" + selectedAccountId,
-                        sort_order: "asc",
-                        per_page: 200
-                    })
-                    .then(function(response) {
-                        if (response.data && response.data.length > 0) {
-                            const deals = response.data.map(deal => ({
-                                id: deal.id,
-                                Deal_Name: deal.Deal_Name
-                            }));
+                // Filter out the provided shift from all shifts
+                const filteredShifts = allShifts.filter(shift => shift.id !== shiftID);
     
-                            // Create a new popup to display the deal names
-                            let dealPopup = document.createElement("div");
-                            dealPopup.className = "popup";
+                // Function to check if two date ranges overlap
+                function doDatesOverlap(date1, date2) {
+                    const start1 = moment(date1.startDate);
+                    const end1 = moment(date1.endDate);
+                    const start2 = moment(date2.startDate);
+                    const end2 = moment(date2.endDate);
     
-                            let dealPopupContent = `
-                              <h2>Select Job</h2>
-                            `;
-                            deals.forEach(function(deal) {
-                                dealPopupContent += `
-                                  <p>
-                                    <input type="radio" name="deal" value="${deal.id}"> ${deal.Deal_Name}
-                                  </p>
-                                `;
+                    return start1.isBefore(end2) && end1.isAfter(start2);
+                }
+    
+                // Function to check if two shifts overlap
+                function doShiftsOverlap(shift1, shift2) {
+                    const shift1Dates = getWorkingDatesAndTimes(
+                        shift1.startDate,
+                        shift1.endDate,
+                        shift1.startTime,
+                        shift1.endTime,
+                        shift1.workingDays
+                    );
+                    const shift2Dates = getWorkingDatesAndTimes(
+                        shift2.startDate,
+                        shift2.endDate,
+                        shift2.startTime,
+                        shift2.endTime,
+                        shift2.workingDays
+                    );
+    
+                    return shift1Dates.some(date1 => 
+                        shift2Dates.some(date2 => 
+                            date1.date === date2.date && doDatesOverlap(date1, date2)
+                        )
+                    );
+                }
+    
+                // List working dates and times
+                function getWorkingDatesAndTimes(startDate, endDate, startTime, endTime, workingDays) {
+                    let workingDates = [];
+                    let currentDay = moment(startDate);
+                    while (currentDay.isSameOrBefore(endDate)) {
+                        if (isWorkingDay(currentDay, workingDays)) {
+                            workingDates.push({
+                                date: currentDay.format('YYYY-MM-DD'),
+                                startTime: startTime,
+                                endTime: endTime
                             });
-    
-                            dealPopupContent += `
-                              <button class="select-button">Select</button>
-                              <button class="cancel-button">Cancel</button>
-                            `;
-    
-                            dealPopup.innerHTML = dealPopupContent;
-    
-                            // Add the deal popup to the page
-                            document.body.appendChild(dealPopup);
-    
-                            // Add a click event listener to the select button
-                            let selectButton = dealPopup.querySelector(".select-button");
-                            selectButton.addEventListener("click", function() {
-                                // Get the selected deal ID
-                                let selectedDealId = dealPopup.querySelector('input[name="deal"]:checked').value;
-                                console.log("Selected deal ID:", selectedDealId);
-    
-                                // Create a new popup to input schedule details
-                                let schedulePopup = document.createElement("div");
-                                schedulePopup.className = "popup";
-    
-                                let schedulePopupContent = `
-                                  <h2>Enter Schedule Details</h2>
-                                  <p>Schedule Name: <input type="text" id="schedule-name"></p>
-                                  <p>Start Date: <input type="date" id="start-date"></p>
-                                  <p>Start Time: <input type="time" id="start-time"></p>
-                                  <p>End Date: <input type="date" id="end-date"></p>
-                                  <p>End Time: <input type="time" id="end-time"></p>
-                                  <p>
-                                      <strong>Frequency:</strong><br>
-                                      <input type="checkbox" id="Daily" name="frequency[]" value="Daily">
-                                      <label for="Daily">Daily</label><br>
-                                      <input type="checkbox" id="Weekdays" name="frequency[]" value="Weekdays">
-                                      <label for="Weekdays">Weekdays</label><br>
-                                      <input type="checkbox" id="Monday" name="frequency[]" value="Monday">
-                                      <label for="Monday">Monday</label><br>
-                                      <input type="checkbox" id="Tuesday" name="frequency[]" value="Tuesday">
-                                      <label for="Tuesday">Tuesday</label><br>
-                                      <input type="checkbox" id="Wednesday" name="frequency[]" value="Wednesday">
-                                      <label for="Wednesday">Wednesday</label><br>
-                                      <input type="checkbox" id="Thursday" name="frequency[]" value="Thursday">
-                                      <label for="Thursday">Thursday</label><br>
-                                      <input type="checkbox" id="Friday" name="frequency[]" value="Friday">
-                                      <label for="Friday">Friday</label><br>
-                                      <input type="checkbox" id="Saturday" name="frequency[]" value="Saturday">
-                                      <label for="Saturday">Saturday</label><br>
-                                  </p>
-                                  <button class="create-button">Create</button>
-                                  <button class="cancel-button">Cancel</button>
-                                `;
-    
-                                schedulePopup.innerHTML = schedulePopupContent;
-    
-                                // Add the schedule popup to the page
-                                document.body.appendChild(schedulePopup);
-    
-                                // Add a click event listener to the create button
-                                let createButton = schedulePopup.querySelector(".create-button");
-                                createButton.addEventListener("click", function() {
-                                    let tempId = lead.id;
-                                    // Get the schedule details
-                                    let scheduleName = document.getElementById("schedule-name").value;
-                                    let startDate = document.getElementById("start-date").value;
-                                    let startTime = document.getElementById("start-time").value;
-                                    let endDate = document.getElementById("end-date").value;
-                                    let endTime = document.getElementById("end-time").value;
-    
-                                    let frequency = [];
-                                    let checkboxes = document.getElementsByName("frequency[]");
-                                    for (let i = 0; i < checkboxes.length; i++) {
-                                        if (checkboxes[i].checked) {
-                                            frequency.push(checkboxes[i].value);
-                                        }
-                                    }
-    
-                                    console.log(`Temp ID: ${tempId}`);
-                                    console.log(`Schedule Name: ${scheduleName}`);
-                                    console.log(`Start Date: ${startDate}`);
-                                    console.log(`Start Time: ${startTime}`);
-                                    console.log(`End Date: ${endDate}`);
-                                    console.log(`End Time: ${endTime}`);
-                                    console.log(`Frequency: ${frequency}`);
-    
-                                    // Call the createShiftScheduleRecord function
-                                    createShiftScheduleRecord(tempId, scheduleName, startDate, startTime, endDate, endTime, frequency, selectedAccountId, selectedDealId);
-    
-                                    // Close the popups
-                                    backdrop.remove();
-                                    dealPopup.remove();
-                                    schedulePopup.remove();
-                                    popup.remove();
-                                });
-    
-                                // Add a click event listener to the cancel button
-                                let cancelButton = schedulePopup.querySelector(".cancel-button");
-                                cancelButton.addEventListener("click", function() {
-                                    // Close the popups
-                                    backdrop.remove();
-                                    dealPopup.remove();
-                                    schedulePopup.remove();
-                                    popup.remove();
-                                });
-                            });
-    
-                            // Add a click event listener to the cancel button
-                            let cancelButton = dealPopup.querySelector(".cancel-button");
-                            cancelButton.addEventListener("click", function() {
-                                // Close the popups
-                                backdrop.remove();
-                                dealPopup.remove();
-                                popup.remove();
-                            });
-                        } else {
-                            console.log("No deals found for the selected account");
                         }
+                        currentDay.add(1, 'days');
+                    }
+                    return workingDates;
+                }
+    
+                // Function to check if a date is a working day based on the Days_in_the_Week value
+                function isWorkingDay(date, workingDays) {
+                    const dayOfWeek = date.format('dddd').toLowerCase();
+                    if (workingDays.includes('daily')) return true;
+                    if (workingDays.includes('weekend')) return !['saturday', 'sunday'].includes(dayOfWeek);
+                    return workingDays.includes(dayOfWeek) ||
+                           (workingDays.includes('weekdays') && ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'].includes(dayOfWeek));
+                }
+    
+                let providedShiftWorkingDates = getWorkingDatesAndTimes(providedShiftStartDate, providedShiftEndDate, providedShiftStartTime, providedShiftEndTime, providedShiftDays);
+                console.log("Working Dates and Times for Provided Shift:", providedShiftWorkingDates);
+    
+                // Filter shifts that need to be checked and overlap with the provided shift
+                const overlappingShifts = filteredShifts.filter(shift => {
+                    const shiftStart = moment(shift['Start_Date_and_Work_Start_Time']);
+                    const shiftEnd = moment(shift['End_Date_and_Work_End_Time']);
+                    const shiftDays = shift['Days_in_the_Week'].map(day => day.toLowerCase());
+                    const shiftStartTime = moment(shift['Start_Date_and_Work_Start_Time']).format('HH:mm');
+                    const shiftEndTime = moment(shift['End_Date_and_Work_End_Time']).format('HH:mm');
+    
+                    const shiftToCheck = {
+                        startDate: shiftStart.format('YYYY-MM-DD'),
+                        endDate: shiftEnd.format('YYYY-MM-DD'),
+                        workingDays: shiftDays,
+                        startTime: shiftStartTime,
+                        endTime: shiftEndTime
+                    };
+    
+                    const overlap = doShiftsOverlap({
+                        startDate: providedShiftStartDate.format('YYYY-MM-DD'),
+                        endDate: providedShiftEndDate.format('YYYY-MM-DD'),
+                        workingDays: providedShiftDays,
+                        startTime: providedShiftStartTime,
+                        endTime: providedShiftEndTime
+                    }, shiftToCheck);
+    
+                    // Get the working dates and times for this shift
+                    const shiftWorkingDates = getWorkingDatesAndTimes(shiftStart, shiftEnd, shiftStartTime, shiftEndTime, shiftDays);
+    
+                    // Log shift details including ID and working dates
+                    console.log("Checking shift:", {
+                        id: shift.id,
+                        startDate: shiftStart.format('YYYY-MM-DD'),
+                        endDate: shiftEnd.format('YYYY-MM-DD'),
+                        workingDays: shiftDays,
+                        Start_Time: shiftStartTime,
+                        End_Time: shiftEndTime,
+                        Working_Dates_and_Times: shiftWorkingDates,
+                        overlap: overlap
+                    });
+    
+                    return overlap;
+                });
+    
+                // Log shifts that overlap with the provided shift
+                console.log("Overlapping Shifts:");
+                overlappingShifts.forEach(shift => {
+                    const shiftStart = moment(shift['Start_Date_and_Work_Start_Time']);
+                    const shiftEnd = moment(shift['End_Date_and_Work_End_Time']);
+                    const shiftDays = shift['Days_in_the_Week'].map(day => day.toLowerCase());
+                    const shiftStartTime = moment(shift['Start_Date_and_Work_Start_Time']).format('HH:mm');
+                    const shiftEndTime = moment(shift['End_Date_and_Work_End_Time']).format('HH:mm');
+    
+                    // Get the working dates and times for this shift
+                    const shiftWorkingDates = getWorkingDatesAndTimes(shiftStart, shiftEnd, shiftStartTime, shiftEndTime, shiftDays);
+    
+                    console.log({
+                        id: shift.id,
+                        Start_Date_and_Work_Start_Time: shiftStart.format('YYYY-MM-DD'),
+                        End_Date_and_Work_End_Time: shiftEnd.format('YYYY-MM-DD'),
+                        Days_in_the_Week: shiftDays,
+                        Working_Dates_and_Times: shiftWorkingDates
+                    });
+                });
+    
+            } catch (error) {
+                console.error("Error fetching data:", error);
+            }
+        });
+    } else {
+        console.error("Swap Temps button not found");
+    }
+     
+    
+    
+    
+    
+    
+    
+      
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+
+    
+        
+    
+    
+    
+    
+    
+    
+       
+    
+    
+
+    
+         
+    
+
+
+
+
+
+
+    /////////////////////////////////
+    // Search function for seaching temp alone page 
+
+    if (document.getElementById('searchBoxTempOnly')) {
+        document.getElementById('searchBoxTempOnly').addEventListener('input', function(event) {
+            const searchQuery = event.target.value.toLowerCase();
+            const filteredData = tempData.filter(temp => 
+                (temp.First_Name + ' ' + temp.Last_Name).toLowerCase().includes(searchQuery)
+            );
+            displayTempdataPage(1, filteredData); // Reset to the first page of filtered results
+        });
+    }
+
+
+    // Search function for Swap temps button
+
+    if (document.getElementById('searchBoxShifttemp')) {
+        document.getElementById('searchBoxShifttemp').addEventListener('input', function(event) {
+            const searchQuery = event.target.value.toLowerCase();
+            const filteredData = tempshiftData.filter(shift => 
+                (shift.Name).toLowerCase().includes(searchQuery)
+            );
+            displayShiftPage(1, filteredData); // Reset to the first page of filtered results
+        });
+    }
+    if (document.getElementById('searchBoxTemptemp')) {
+        document.getElementById('searchBoxTemptemp').addEventListener('input', function(event) {
+            const searchQuery = event.target.value.toLowerCase();
+            const filteredData = tempshiftData.filter(shift => 
+                (shift.Schedule_For_Temp && shift.Schedule_For_Temp.name ? shift.Schedule_For_Temp.name : '').toLowerCase().includes(searchQuery)
+            );
+            displayShiftPage(1, filteredData); // Reset to the first page of filtered results
+        });
+    }
+    
+
+    if (swapShiftsBtn) {
+        swapShiftsBtn.addEventListener('click', function() {
+            console.log("Swap Shifts button clicked");
+            buttonsModal.style.display = "none"; // Hide the buttons modal
+            shiftModal.style.display = "block"; // Show the shift modal
+
+            ZOHO.CRM.API.getAllRecords({
+                Entity: "Shift_Schedule",
+                sort_order: "asc",
+                per_page: 200
+            }).then(function(response) {
+                console.log("API response received:", response);
+
+                if (response.data && response.data.length > 0) {
+                    shiftData = response.data.map(shift => ({
+                        id: shift.id || '',
+                        Name: shift.Name || '',
+                        Start_Date_and_Work_Start_Time: shift.Start_Date_and_Work_Start_Time || '',
+                        End_Date_and_Work_End_Time: shift.End_Date_and_Work_End_Time || '',
+                        Days_in_the_Week: shift.Days_in_the_Week || '',
+                        Schedule_For_Temp: shift.Schedule_For_Temp || {} // Ensure it's an object
+                    }));
+                    console.log("Shifts data processed:", shiftData);
+
+                    displayShiftPage(currentPage);
+                } else {
+                    console.log("No shift data found");
+                }
+            }).catch(function(error) {
+                console.error("Error fetching shift data:", error);
+            });
+        });
+    } else {
+        console.error("Swap Shifts button not found");
+    }
+
+    if (document.getElementById('prevPageBtn')) {
+        document.getElementById('prevPageBtn').addEventListener('click', function() {
+            if (currentPage > 1) {
+                currentPage--;
+                displayshiftTempPage(currentPage);
+            }
+        });
+    } else {
+        console.error("Previous Page button for temp not found");
+    }
+
+    if (document.getElementById('nextPageBtn')) {
+        document.getElementById('nextPageBtn').addEventListener('click', function() {
+            if (currentPage * recordsPerPage < tempData.length) {
+                currentPage++;
+                displayshiftTempPage(currentPage);
+            }
+        });
+    } else {
+        console.error("Next Page button for temp not found");
+    }
+
+    if (document.getElementById('prevShiftPageBtn')) {
+        document.getElementById('prevShiftPageBtn').addEventListener('click', function() {
+            if (currentPage > 1) {
+                currentPage--;
+                displayShiftPage(currentPage);
+            }
+        });
+    } else {
+        console.error("Previous Page button for shift not found");
+    }
+
+    // Function to display the success message modal
+    function showSuccessModal(message) {
+        var successModal = document.getElementById('successModal');
+        var successMessage = document.getElementById('successMessage');
+
+        if (successMessage) {
+            successMessage.textContent = message;
+        }
+
+        if (successModal) {
+            successModal.style.display = "block";
+        }
+    }
+
+    // Update the code where you handle the successful shift swap
+    if (document.getElementById('submitShiftBtn')) {
+        document.getElementById('submitShiftBtn').addEventListener('click', function() {
+            if (selectedShiftIds.length === 2) {
+                // Get the selected shifts
+                const selectedShifts = shiftData.filter(shift => selectedShiftIds.includes(shift.id));
+                
+                if (selectedShifts.length === 2) {
+                    const [shift1, shift2] = selectedShifts;
+
+                    // Log both Shift ID and Schedule_For_Temp.id for each selected shift
+                    console.log(`Shifts to swap:`);
+                    console.log(`Shift 1 ID: ${shift1.id}, Temp ID: ${shift1.Schedule_For_Temp ? shift1.Schedule_For_Temp.id : 'N/A'}`);
+                    console.log(`Shift 2 ID: ${shift2.id}, Temp ID: ${shift2.Schedule_For_Temp ? shift2.Schedule_For_Temp.id : 'N/A'}`);
+
+                    // Perform swap
+                    const tempId1 = shift1.Schedule_For_Temp ? shift1.Schedule_For_Temp.id : null;
+                    const tempId2 = shift2.Schedule_For_Temp ? shift2.Schedule_For_Temp.id : null;
+
+                    if (tempId1 === null || tempId2 === null) {
+                        showSuccessModal("Both selected shifts must have associated temps.");
+                        return;
+                    }
+
+                    // Prepare data for updating
+                    const updates = [
+                        { id: shift1.id, Schedule_For_Temp: { id: tempId2 } },
+                        { id: shift2.id, Schedule_For_Temp: { id: tempId1 } }
+                    ];
+
+                    // Log the data being sent to API
+                    console.log("Data to be updated:", updates);
+
+                    Promise.all(updates.map(update => {
+                        console.log("Updating shift:", update); // Log each update
+                        return ZOHO.CRM.API.updateRecord({
+                            Entity: "Shift_Schedule",
+                            RecordID: update.id,
+                            APIData: update
+                        }).then(response => {
+                            console.log(`Update response for Shift ID ${update.id}:`, response);
+                            return response; // Return the response to handle success
+                        }).catch(error => {
+                            console.error(`Error updating Shift ID ${update.id}:`, error);
+                            if (error && error.data) {
+                                console.error("Detailed error data:", error.data);
+                            }
+                            throw error; // Throw error to handle in Promise.all
+                        });
+                    }))
+                    .then(responses => {
+                        console.log("All updates successful:", responses);
+                        showSuccessModal("Shifts Swapped Successfully.");
+                        closeModals();
                     })
                     .catch(function(error) {
-                        console.error("Error fetching deals:", error);
+                        console.error("Error updating shifts:", error);
+                        if (error && error.data) {
+                            console.error("Detailed error data:", error.data);
+                        }
+                        showSuccessModal("Failed to update shifts. Please try again.");
                     });
-                });
-    
-                // Add a click event listener to the cancel button
-                let cancelButton = popup.querySelector(".cancel-button");
-                cancelButton.addEventListener("click", function() {
-                    // Close the popup and the backdrop
-                    backdrop.remove();
-                    popup.remove();
-                });
-            } else {
-                console.log("No accounts found.");
-            }
-        })
-        .catch(function(error) {
-            console.error("Error fetching accounts:", error);
-        });
-    });
-    
-    options.appendChild(addScheduleButton);
-
-    return options;
-}
-
-function handleThreeDotsButtonClick(event) {
-    let options = event.target.parentElement.querySelector('.unavailability-options');
-    if (options.style.display === 'none' || options.style.display === '') {
-        options.style.display = 'block';
-    } else {
-        options.style.display = 'none';
-    }
-}
-
-
-function populateCalendarBody(leads, schedules, timeOffRecords) {
-    let tbody = document.querySelector('#calendarTable tbody');
-    tbody.innerHTML = ""; // Clear any existing rows
-
-    const weekDates = getWeekDates(new Date(currentDate));
-    const weekStartDate = new Date(weekDates[0]);
-    const weekEndDate = new Date(weekDates[weekDates.length - 1]);
-    weekEndDate.setHours(23, 59, 59, 999); // Set the end date to the last millisecond of the day
-
-    leads.forEach(lead => {
-        let row = document.createElement('tr');
-        let rowHeader = document.createElement('td');
-        rowHeader.className = 'rowHeader';
-        rowHeader.innerText = `${lead.First_Name} ${lead.Last_Name} (${lead.id})`;
-        row.appendChild(rowHeader);
-
-        weekDates.forEach(dateString => {
-            let cell = document.createElement('td');
-            cell.className = 'cell';
-            cell.dataset.time = `${dateString}, ${lead.First_Name} ${lead.Last_Name}`;
-            cell.dataset.tempId = lead.id;
-            let cellDate = new Date(dateString);
-            cellDate.setHours(0, 0, 0, 0);
-            let dayOfWeek = getDayOfWeek(cellDate.getDay());
-
-            // Check for unavailability records
-            let unavailabilityRecords = timeOffRecords.filter(record => {
-                if (record.Unavailability === 'All Day' && record.Unavailable_day === moment(cellDate).format('YYYY-MM-DD') && record.Name1.id === lead.id) {
-                    return true;
-                } else if (record.Unavailability === 'Hourly' && moment(record.From_Date_Time).format('YYYY-MM-DD') === moment(cellDate).format('YYYY-MM-DD') && record.Name1.id === lead.id) {
-                    return true;
+                } else {
+                    showSuccessModal("Please select exactly two shifts for swapping.");
                 }
-                return false;
+            } else {
+                showSuccessModal("Please select exactly two shifts.");
+            }
+        });
+    } else {
+        console.error("Submit button for shift not found");
+    }
+
+    // Add an event listener to close the success modal
+    document.querySelector('#successModal .close').addEventListener('click', function() {
+        document.getElementById('successModal').style.display = 'none';
+    });
+
+    // Search fucntion for Swap Shifts
+
+    if (document.getElementById('searchBoxShift')) {
+        document.getElementById('searchBoxShift').addEventListener('input', function(event) {
+            const searchQuery = event.target.value.toLowerCase();
+            const filteredData = shiftData.filter(shift => 
+                (shift.Name).toLowerCase().includes(searchQuery)
+            );
+            displayShiftPage(1, filteredData); // Reset to the first page of filtered results
+        });
+    }
+    if (document.getElementById('searchBoxTemp')) {
+        document.getElementById('searchBoxTemp').addEventListener('input', function(event) {
+            const searchQuery = event.target.value.toLowerCase();
+            const filteredData = shiftData.filter(shift => 
+                (shift.Schedule_For_Temp && shift.Schedule_For_Temp.name ? shift.Schedule_For_Temp.name : '').toLowerCase().includes(searchQuery)
+            );
+            displayShiftPage(1, filteredData); // Reset to the first page of filtered results
+        });
+    }
+
+    // Fucntion for Swap Temp shift
+
+    function displayshiftTempPage(page, data = tempshiftData) {
+        const container = document.getElementById('tempshiftContainer');
+        const nextButtontemp = document.getElementById('nextButtontemp');
+        
+        if (!container) {
+            console.error("Temp Shift container element not found");
+            return;
+        }
+        
+        container.innerHTML = ''; // Clear existing options
+        console.log("Temp Shift container cleared");
+        
+        const start = (page - 1) * recordsPerPage;
+        const end = start + recordsPerPage;
+        const pagedData = data.slice(start, end);
+        
+        pagedData.forEach((shift, index) => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${shift.Name}</td>
+                <td>${shift.Schedule_For_Temp ? shift.Schedule_For_Temp.name : 'N/A'}</td>
+                <td>${shift.Start_Date_and_Work_Start_Time}</td>
+                <td>${shift.End_Date_and_Work_End_Time}</td>
+                <td>${shift.Days_in_the_Week}</td>
+                <td>
+                    <input type="radio" name="shift" value="${shift.id}" class="shift-radio" />
+                </td>
+            `;
+            
+            container.appendChild(row);
+        });
+        
+        // Add event listener to handle radio button selection
+        document.querySelectorAll('.shift-radio').forEach(radio => {
+            radio.addEventListener('change', handleRadioSelection);
+        });
+        
+        
+        console.log("Temp Shift data populated");
+    }
+    
+    function handleRadioSelection(event) {
+        const selectedRadio = document.querySelector('.shift-radio:checked');
+        const nextButtontemp = document.getElementById('nextButtontemp');
+        
+        if (nextButtontemp) {
+            if (selectedRadio) {
+                nextButtontemp.style.display = 'block'; // Show "Next" button if exactly one radio button is selected
+            } else {
+                nextButtontemp.style.display = 'none'; // Hide "Next" button if no radio button is selected
+            }
+        }
+    }
+
+     // Function to display the temp data
+
+     function displayTempdataPage(page, data = tempData) {
+        const container = document.getElementById('accountRadioContainer');
+        if (!container) {
+            console.error("Radio container element not found");
+            return;
+        }
+
+        container.innerHTML = ''; // Clear existing options
+        console.log("Radio container cleared");
+
+        const start = (page - 1) * recordsPerPage;
+        const end = start + recordsPerPage;
+        const pagedData = data.slice(start, end);
+
+        pagedData.forEach(temp => {
+            const label = document.createElement('label');
+            const radio = document.createElement('input');
+            radio.type = 'radio';
+            radio.name = 'account';
+            radio.value = temp.id;
+
+            radio.addEventListener('change', function() {
+                selectedRecordId = radio.value;
+                toggleSubmitButtonVisibility();
             });
 
-            if (unavailabilityRecords.length > 0) {
-                unavailabilityRecords.forEach(unavailabilityRecord => {
-                    let unavailabilityHtml = '';
-                    if (unavailabilityRecord.Unavailability === 'All Day') {
-                        unavailabilityHtml = `
-                            <div class="unavailable-box">
-                                <p>Unavailable All Day</p>
-                            </div>
-                        `;
-                        // Add a class to the cell if it's unavailable all day
-                        cell.classList.add('unavailable');
-                    } else if (unavailabilityRecord.Unavailability === 'Hourly') {
-                        let startTimeString = moment(unavailabilityRecord.From_Date_Time).format('hh:mm a');
-                        let endTimeString = moment(unavailabilityRecord.To_Date).format('hh:mm a');
-                        
-                        unavailabilityHtml = `
-                            <div class="unavailable-box">
-                                <p>Unavailable (${startTimeString} - ${endTimeString})</p>
-                            </div>
-                        `;
-                    }
-                    cell.innerHTML += unavailabilityHtml;
-                });
+            const firstName = temp.First_Name || '';
+            const lastName = temp.Last_Name || '';
+            const name = (firstName || lastName) ? (firstName + (firstName && lastName ? ' ' : '') + lastName) : 'Unnamed';
 
-                // Render schedules only if the cell doesn't have the 'unavailable' class
-                if (!cell.classList.contains('unavailable')) {
-                    let scheduleHtml = '';
-                    schedules.forEach(schedule => {
-                        if (schedule.Schedule_For_Temp && schedule.Schedule_For_Temp.id === lead.id) {
-                            let jobName = schedule.Job ? schedule.Job.name : "No Job Assigned";
-                            let daysInWeek = schedule.Days_in_the_Week;
-                            let startDateTime = new Date(schedule.Start_Date_and_Work_Start_Time);
-                            let endDateTime = new Date(schedule.End_Date_and_Work_End_Time);
-                            let prevDayDateTime = new Date(startDateTime);
-                            prevDayDateTime.setDate(prevDayDateTime.getDate() - 0); // Adjust to check previous day
-
-                            let selectedDays = [];
-                            if (daysInWeek.includes('Daily')) {
-                                selectedDays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-                            } else if (daysInWeek.includes('Weekdays')) {
-                                selectedDays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
-                            } else {
-                                selectedDays = daysInWeek;
-                            }
-
-                            if (selectedDays.includes(dayOfWeek)) {
-                                if (startDateTime <= cellDate && endDateTime >= cellDate) {
-                                    let startTimeString = formatTimeTo12Hour(startDateTime);
-                                    let endTimeString = formatTimeTo12Hour(endDateTime);
-                                    if (cellDate.toDateString() === startDateTime.toDateString()) {
-                                        scheduleHtml += `<div class="schedule-box"><p>${jobName}</p><p>${startTimeString} - ${endTimeString}</p></div>`;
-                                    } else if (cellDate > startDateTime && cellDate < endDateTime) {
-                                        scheduleHtml += `<div class="schedule-box"><p>${jobName}</p><p>${startTimeString} - ${endTimeString}</p></div>`;
-                                    }
-                                }
-
-                                if (cellDate.toDateString() === prevDayDateTime.toDateString()) {
-                                    let startTimeString = formatTimeTo12Hour(startDateTime);
-                                    let endTimeString = formatTimeTo12Hour(endDateTime);
-                                    scheduleHtml += `<div class="schedule-box"><p>${jobName}</p><p>${startTimeString} - ${endTimeString}</p></div>`;
-                                }
-                            }
-                        }
-                    });
-
-                    cell.innerHTML += scheduleHtml;
-                }
-            } else {
-                // Render schedules
-                let scheduleHtml = '';
-                schedules.forEach(schedule => {
-                    if (schedule.Schedule_For_Temp && schedule.Schedule_For_Temp.id === lead.id) {
-                        let jobName = schedule.Job ? schedule.Job.name : "No Job Assigned";
-                        let daysInWeek = schedule.Days_in_the_Week;
-                        let startDateTime = new Date(schedule.Start_Date_and_Work_Start_Time);
-                        let endDateTime = new Date(schedule.End_Date_and_Work_End_Time);
-                        let prevDayDateTime = new Date(startDateTime);
-                        prevDayDateTime.setDate(prevDayDateTime.getDate() - 0); // Adjust to check previous day
-
-                        let selectedDays = [];
-                        if (daysInWeek.includes('Daily')) {
-                            selectedDays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-                        } else if (daysInWeek.includes('Weekdays')) {
-                            selectedDays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
-                        } else {
-                            selectedDays = daysInWeek;
-                        }
-
-                        if (selectedDays.includes(dayOfWeek)) {
-                            if (startDateTime <= cellDate && endDateTime >= cellDate) {
-                                let startTimeString = formatTimeTo12Hour(startDateTime);
-                                let endTimeString = formatTimeTo12Hour(endDateTime);
-                                if (cellDate.toDateString() === startDateTime.toDateString()) {
-                                    scheduleHtml += `<div class="schedule-box"><p>${jobName}</p><p>${startTimeString} - ${endTimeString}</p></div>`;
-                                } else if (cellDate > startDateTime && cellDate < endDateTime) {
-                                    scheduleHtml += `<div class="schedule-box"><p>${jobName}</p><p>${startTimeString} - ${endTimeString}</p></div>`;
-                                }
-                            }
-
-                            if (cellDate.toDateString() === prevDayDateTime.toDateString()) {
-                                let startTimeString = formatTimeTo12Hour(startDateTime);
-                                let endTimeString = formatTimeTo12Hour(endDateTime);
-                                scheduleHtml += `<div class="schedule-box"><p>${jobName}</p><p>${startTimeString} - ${endTimeString}</p></div>`;
-                            }
-                        }
-                    }
-                });
-
-                cell.innerHTML += scheduleHtml;
-
-                if (scheduleHtml === '') {
-                    // Add plus button if no schedule
-                    let plusButton = document.createElement('button');
-                    plusButton.className = 'plus-button';
-                    plusButton.innerText = '+';
-                    plusButton.addEventListener('click', function() {
-                        // Call the API to fetch Accounts
-                        ZOHO.CRM.API.getAllRecords({
-                            Entity: "Accounts",
-                            sort_order: "asc",
-                            per_page: 200
-                        })
-                        .then(function(response) {
-                            if (response.data && response.data.length > 0) {
-                                const accounts = response.data.map(account => ({
-                                    id: account.id,
-                                    Account_Name: account.Account_Name
-                                }));
-                    
-                                // Create the overlay
-                                let overlay = document.createElement("div");
-                                overlay.className = "overlay";
-                                document.body.appendChild(overlay);
-                    
-                                // Create a popup to display the account names
-                                let popup = document.createElement("div");
-                                popup.className = "popup";
-                    
-                                let popupContent = `
-                                  <h2>Select Client</h2>
-                                `;
-                                accounts.forEach(function(account) {
-                                    popupContent += `
-                                      <p>
-                                        <input type="radio" name="account" value="${account.id}"> ${account.Account_Name}
-                                      </p>
-                                    `;
-                                });
-                    
-                                popupContent += `
-                                  <button class="next-button">Next</button>
-                                  <button class="cancel-button">Cancel</button>
-                                `;
-                    
-                                popup.innerHTML = popupContent;
-                    
-                                // Add the popup to the page
-                                document.body.appendChild(popup);
-                    
-                                // Add a click event listener to the next button
-                                let nextButton = popup.querySelector(".next-button");
-                                nextButton.addEventListener("click", function() {
-                                    // Get the selected account ID
-                                    let selectedAccountId = popup.querySelector('input[name="account"]:checked').value;
-                                    console.log("Selected account ID:", selectedAccountId);
-                    
-                                    // Call the API to fetch Deals for the selected account
-                                    ZOHO.CRM.API.getAllRecords({
-                                        Entity: "Deals",
-                                        Criteria: "Account_Name.id:equals:" + selectedAccountId,
-                                        sort_order: "asc",
-                                        per_page: 200
-                                    })
-                                    .then(function(response) {
-                                        if (response.data && response.data.length > 0) {
-                                            const deals = response.data.map(deal => ({
-                                                id: deal.id,
-                                                Deal_Name: deal.Deal_Name
-                                            }));
-                    
-                                            // Create a new popup to display the deal names
-                                            let dealPopup = document.createElement("div");
-                                            dealPopup.className = "popup";
-                    
-                                            let dealPopupContent = `
-                                              <h2>Select Job</h2>
-                                            `;
-                                            deals.forEach(function(deal) {
-                                                dealPopupContent += `
-                                                  <p>
-                                                    <input type="radio" name="deal" value="${deal.id}"> ${deal.Deal_Name}
-                                                  </p>
-                                                `;
-                                            });
-                    
-                                            dealPopupContent += `
-                                              <button class="select-button">Select</button>
-                                              <button class="cancel-button">Cancel</button>
-                                            `;
-                    
-                                            dealPopup.innerHTML = dealPopupContent;
-                    
-                                            // Add the deal popup to the page
-                                            document.body.appendChild(dealPopup);
-                    
-                                            // Add a click event listener to the select button
-                                            let selectButton = dealPopup.querySelector(".select-button");
-                                            selectButton.addEventListener("click", function() {
-                                                // Get the selected deal ID
-                                                let selectedDealId = dealPopup.querySelector('input[name="deal"]:checked').value;
-                                                console.log("Selected deal ID:", selectedDealId);
-                    
-                                                // Create a new popup to input schedule details
-                                                let schedulePopup = document.createElement("div");
-                                                schedulePopup.className = "popup";
-                    
-                                                let schedulePopupContent = `
-                                                  <h2>Enter Schedule Details</h2>
-                                                  <p>Schedule Name: <input type="text" id="schedule-name"></p>
-                                                  <p>Start Date: <input type="date" id="start-date"></p>
-                                                  <p>Start Time: <input type="time" id="start-time"></p>
-                                                  <p>End Date: <input type="date" id="end-date"></p>
-                                                  <p>End Time: <input type="time" id="end-time"></p>
-                                                  <p>
-                                                      <strong>Frequency:</strong><br>
-                                                      <input type="checkbox" id="Daily" name="frequency[]" value="Daily">
-                                                      <label for="Daily">Daily</label><br>
-                                                      <input type="checkbox" id="Weekdays" name="frequency[]" value="Weekdays">
-                                                      <label for="Weekdays">Weekdays</label><br>
-                                                      <input type="checkbox" id="Monday" name="frequency[]" value="Monday">
-                                                      <label for="Monday">Monday</label><br>
-                                                      <input type="checkbox" id="Tuesday" name="frequency[]" value="Tuesday">
-                                                      <label for="Tuesday">Tuesday</label><br>
-                                                      <input type="checkbox" id="Wednesday" name="frequency[]" value="Wednesday">
-                                                      <label for="Wednesday">Wednesday</label><br>
-                                                      <input type="checkbox" id="Thursday" name="frequency[]" value="Thursday">
-                                                      <label for="Thursday">Thursday</label><br>
-                                                      <input type="checkbox" id="Friday" name="frequency[]" value="Friday">
-                                                      <label for="Friday">Friday</label><br>
-                                                      <input type="checkbox" id="Saturday" name="frequency[]" value="Saturday">
-                                                      <label for="Saturday">Saturday</label><br>
-                                                  </p>
-                                                  <button class="create-button">Create</button>
-                                                  <button class="cancel-button">Cancel</button>
-                                                `;
-                    
-                                                schedulePopup.innerHTML = schedulePopupContent;
-                    
-                                                // Add the schedule popup to the page
-                                                document.body.appendChild(schedulePopup);
-                    
-                                                // Add a click event listener to the create button
-                                                let createButton = schedulePopup.querySelector(".create-button");
-                                                createButton.addEventListener("click", function() {
-                                                    let tempId = lead.id;
-                                                    // Get the schedule details
-                                                    let scheduleName = document.getElementById("schedule-name").value;
-                                                    let startDate = document.getElementById("start-date").value;
-                                                    let startTime = document.getElementById("start-time").value;
-                                                    let endDate = document.getElementById("end-date").value;
-                                                    let endTime = document.getElementById("end-time").value;
-                    
-                                                    let frequency = [];
-                                                    let checkboxes = document.getElementsByName("frequency[]");
-                                                    for (let i = 0; i < checkboxes.length; i++) {
-                                                        if (checkboxes[i].checked) {
-                                                            frequency.push(checkboxes[i].value);
-                                                        }
-                                                    }
-                    
-                                                    console.log(`Temp ID: ${tempId}`);
-                                                    console.log(`Schedule Name: ${scheduleName}`);
-                                                    console.log(`Start Date: ${startDate}`);
-                                                    console.log(`Start Time: ${startTime}`);
-                                                    console.log(`End Date: ${endDate}`);
-                                                    console.log(`End Time: ${endTime}`);
-                                                    console.log(`Frequency: ${frequency}`);
-                    
-                                                    // Call the createShiftScheduleRecord function
-                                                    createShiftScheduleRecord(tempId, scheduleName, startDate, startTime, endDate, endTime, frequency, selectedAccountId, selectedDealId);
-                    
-                                                    // Close the popups
-                                                    overlay.remove();
-                                                    dealPopup.remove();
-                                                    schedulePopup.remove();
-                                                    popup.remove();
-                                                });
-                    
-                                                // Add a click event listener to the cancel button
-                                                let cancelButton = schedulePopup.querySelector(".cancel-button");
-                                                cancelButton.addEventListener("click", function() {
-                                                    // Close the popups
-                                                    overlay.remove();
-                                                    dealPopup.remove();
-                                                    schedulePopup.remove();
-                                                    popup.remove();
-                                                });
-                                            });
-                    
-                                            // Add a click event listener to the cancel button
-                                            let cancelButton = dealPopup.querySelector(".cancel-button");
-                                            cancelButton.addEventListener("click", function() {
-                                                // Close the popups
-                                                overlay.remove();
-                                                dealPopup.remove();
-                                                popup.remove();
-                                            });
-                                        } else {
-                                            console.log("No deals found for the selected account");
-                                        }
-                                    })
-                                    .catch(function(error) {
-                                        console.error("Error fetching deals:", error);
-                                    });
-                                });
-                    
-                                // Add a click event listener to the cancel button
-                                let cancelButton = popup.querySelector(".cancel-button");
-                                cancelButton.addEventListener("click", function() {
-                                    // Close the popups
-                                    overlay.remove();
-                                    popup.remove();
-                                });
-                            } else {
-                                console.log("No accounts found.");
-                            }
-                        })
-                        .catch(function(error) {
-                            console.error("Error fetching accounts:", error);
-                        });
-                    });
-                    
-                    
-                    cell.appendChild(plusButton);
-                }
-            }
-
-            // Add the three-dots button to each cell
-            let threeDotsButton = createThreeDotsButton();
-            cell.appendChild(threeDotsButton);
-
-            // Add the unavailability options
-            let options = createUnavailabilityOptions(lead.id, cellDate, lead);
-            cell.appendChild(options);
-
-            // Add event listener for the three-dots button
-            threeDotsButton.addEventListener('click', handleThreeDotsButtonClick);
-
-            row.appendChild(cell);
+            label.appendChild(radio);
+            label.appendChild(document.createTextNode(name + " " + temp.id));
+            container.appendChild(label);
+            container.appendChild(document.createElement('br')); // For better spacing
         });
 
-        tbody.appendChild(row);
-    });
+        console.log("Radio buttons populated with temp data");
+    }
 
-}
+    // Fucntion to display shift for Swap Shifts 
 
-
-
-function fetchAndPopulateCalendar() {
-    ZOHO.CRM.API.getAllRecords({ Entity: "Leads", sort_order: "desc", per_page: 200 })
-        .then(function(response) {
-            if (response.data && response.data.length > 0) {
-                const leads = response.data.map(lead => ({
-                    id: lead.id,
-                    First_Name: lead.First_Name,
-                    Last_Name: lead.Last_Name
-                }));
-                fetchAndPopulateSchedulesAndTimeOff(leads, searchTerm);
-            } else {
-                console.log("No leads found.");
-                populateCalendarBody([], [], []);
-            }
-        })
-        .catch(function(error) {
-            console.error('Error fetching leads:', error);
-            populateCalendarBody([], [], []);
-        });
-}
-
-function fetchAndPopulateSchedulesAndTimeOff(leads, searchTerm = '') {
-    const weekDates = getWeekDates(new Date(currentDate));
-    const weekStartDate = moment(weekDates[0], 'MMM D, YYYY').format('YYYY-MM-DD');
-    const weekEndDate = moment(weekDates[6], 'MMM D, YYYY').format('YYYY-MM-DD');
-
-    const leadIds = leads.map(lead => lead.id);
-    const leadIdsString = leadIds.join(",");
-
-    // Filter leads based on the search term
-    const filteredLeads = leads.filter(lead => {
-        const fullName = `${lead.First_Name} ${lead.Last_Name}`;
-        return fullName.toLowerCase().includes(searchTerm.toLowerCase());
-    });
-
-    const schedulePromise = ZOHO.CRM.API.getAllRecords({
-        Entity: "Shift_Schedule",
-        Criteria: `(Schedule_For_Temp:equals:${leadIdsString}) AND (Start_Date_and_Work_Start_Time:between:${weekStartDate}T00:00:00.000Z and ${weekEndDate}T23:59:59.999Z)`
-    });
-
-    const timeOffPromise = ZOHO.CRM.API.getAllRecords({
-        Entity: "Time_Off",
-        Criteria: `(Name1:equals:${leadIdsString}) AND ((From_Date_Time:between:${weekStartDate}T00:00:00.000Z and ${weekEndDate}T23:59:59.999Z) OR (Unavailable_day:between:${weekStartDate} and ${weekEndDate}))`
-    });
-
-    console.log('Fetching schedules and time-off records...');
-
-    Promise.all([schedulePromise, timeOffPromise])
-        .then(function([schedulesResponse, timeOffResponse]) {
-            console.log('Schedules response:', schedulesResponse);
-            console.log('Time-off response:', timeOffResponse);
-
-            const schedules = schedulesResponse.data || [];
-            const timeOffRecords = timeOffResponse.data || [];
-
-            console.log('Schedules:', schedules);
-            console.log('Time-off records:', timeOffRecords);
-
-            populateCalendarBody(filteredLeads, schedules, timeOffRecords);
-        })
-        .catch(function(error) {
-            console.error('Error fetching schedules or time-off records:', error);
-            populateCalendarBody([], [], []);
-        });
-}
-
-function insertTimeOffRecord(tempId, cellDate) {
-    const timeOffRecord = {
-        "Name1": { "id": tempId },
-        "Unavailable_day": moment(cellDate).format('YYYY-MM-DD'),
-        "Unavailability": "All Day"
-    };
-
-    ZOHO.CRM.API.insertRecord({ Entity: "Time_Off", APIData: timeOffRecord })
-        .then(function(response) {
-            if (response.data && response.data.length > 0 && response.data[0].code === "SUCCESS") {
-                console.log('Time off record inserted successfully:', response.data);
-                alert("All Day Unavailability Record created successfully! ");
-                fetchAndPopulateCalendar(); // Refresh the calendar to show the updated data
-            } else {
-                console.error('Error inserting time off record:', response.data);
-            }
-        })
-        .catch(function(error) {
-            console.error('Error inserting time off record:', error);
-            searchLeads(searchTerm);
-        });
-}
-// Insert the new function here
-
-function isOverlapping(start1, end1, start2, end2) {
-    return (start1 < end2 && start2 < end1);
-}
-
-function checkForOverlappingSchedules(tempId, startDate, startTime, endDate, endTime, schedules) {
-    const newStart = moment(`${startDate} ${startTime}`, 'YYYY-MM-DD HH:mm');
-    const newEnd = moment(`${endDate} ${endTime}`, 'YYYY-MM-DD HH:mm');
-
-    for (let schedule of schedules) {
-        if (schedule.Schedule_For_Temp.id !== tempId) continue;
-
-        const existingStart = moment(schedule.Start_Date_and_Work_Start_Time);
-        const existingEnd = moment(schedule.End_Date_and_Work_End_Time);
-
-        if (isOverlapping(newStart, newEnd, existingStart, existingEnd)) {
-            return true;
+    function displayShiftPage(page, data = shiftData) {
+        const container = document.getElementById('shiftContainer');
+        if (!container) {
+            console.error("Shift container element not found");
+            return;
         }
-    }
-    return false;
-}
 
-function checkForOverlappingUnavailability(tempId, startDate, startTime, endDate, endTime, timeOffRecords) {
-    const newStart = moment(`${startDate} ${startTime}`, 'YYYY-MM-DD HH:mm');
-    const newEnd = moment(`${endDate} ${endTime}`, 'YYYY-MM-DD HH:mm');
+        container.innerHTML = ''; // Clear existing options
+        console.log("Shift container cleared");
 
-    for (let record of timeOffRecords) {
-        if (record.Name1.id !== tempId) continue;
+        const start = (page - 1) * recordsPerPage;
+        const end = start + recordsPerPage;
+        const pagedData = data.slice(start, end);
 
-        const existingStart = moment(record.From_Date_Time);
-        const existingEnd = moment(record.To_Date);
+        pagedData.forEach(shift => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${shift.Name}</td>
+                <td>${shift.Schedule_For_Temp ? shift.Schedule_For_Temp.name : 'N/A'}</td>
+                <td>${shift.Start_Date_and_Work_Start_Time}</td>
+                <td>${shift.End_Date_and_Work_End_Time}</td>
+                <td>${shift.Days_in_the_Week}</td>
+                <td>
+                    <input type="checkbox" name="shift" value="${shift.id}" class="shift-checkbox" />
+                </td>
+            `;
 
-        if (isOverlapping(newStart, newEnd, existingStart, existingEnd)) {
-            return true;
-        }
-    }
-    return false;
-}
-
-function createShiftScheduleRecord(tempId, scheduleName, startDate, startTime, endDate, endTime, frequency, selectedAccountId, selectedDealId) {
-    const startDateTime = moment(`${startDate} ${startTime}`, 'YYYY-MM-DD HH:mm').toDate();
-    const endDateTime = moment(`${endDate} ${endTime}`, 'YYYY-MM-DD HH:mm').toDate();
-
-    // Fetch existing schedules and time off records
-    ZOHO.CRM.API.getAllRecords({ Entity: "Shift_Schedule", sort_order: "asc", sort_by: "Start_Date_and_Work_Start_Time" })
-        .then(function(response) {
-            const schedules = response.data;
-
-            ZOHO.CRM.API.getAllRecords({ Entity: "Time_Off", sort_order: "asc", sort_by: "From_Date_Time" })
-                .then(function(response) {
-                    const timeOffRecords = response.data;
-
-                    if (checkForOverlappingSchedules(tempId, startDate, startTime, endDate, endTime, schedules)) {
-                        alert("Error: The schedule overlaps with an existing schedule.");
-                        return;
-                    }
-
-                    if (checkForOverlappingUnavailability(tempId, startDate, startTime, endDate, endTime, timeOffRecords)) {
-                        alert("Error: The schedule overlaps with an existing unavailability.");
-                        return;
-                    }
-
-                    const shiftScheduleRecord = {
-                        "Schedule_For_Temp": tempId,
-                        "Client_Name": selectedAccountId,
-                        "Job": selectedDealId,
-                        "Name": scheduleName,
-                        "Start_Date_and_Work_Start_Time": moment(startDateTime).format('YYYY-MM-DDTHH:mm:ssZ'), // Format as ISO 8601 string
-                        "End_Date_and_Work_End_Time": moment(endDateTime).format('YYYY-MM-DDTHH:mm:ssZ'), // Format as ISO 8601 string
-                        "Days_in_the_Week": frequency
-                    };
-
-                    ZOHO.CRM.API.insertRecord({ Entity: "Shift_Schedule", APIData: shiftScheduleRecord })
-                        .then(function(response) {
-                            console.log('Shift schedule record inserted successfully:', response); // Log the API response
-                            if (response.data && response.data.length > 0 && response.data[0].code === "SUCCESS") {
-                                console.log('Shift Schedule Record created successfully!');
-                                alert("Shift Schedule Record created successfully!");
-                                fetchAndPopulateCalendar(); // Refresh the calendar to show the updated data
-                            } else {
-                                console.error('Error creating Shift Schedule Record:', response.data);
-                                alert("Failed to create Shift Schedule Record: " + (response.data[0].message || "Unknown error"));
-                                searchLeads(searchTerm);
-                            }
-                        })
-                        .catch(function(error) {
-                            console.error('Error creating Shift Schedule Record:', error);
-                            alert('An error occurred while creating the Shift Schedule Record. Check the console for details.');
-                        });
-            
-                })
-                .catch(function(error) {
-                    console.error('Error fetching Time Off records:', error);
-                    alert('An error occurred while fetching Time Off records. Check the console for details.');
-                });
-        })
-        .catch(function(error) {
-            console.error('Error fetching Schedules:', error);
-            alert('An error occurred while fetching Schedules. Check the console for details.');
-        });
-}
-
-let hourlyUnavailabilityPopup;
-let backdropElement;
-
-function markUnavailableHourly(tempId, cellDate) {
-    // Remove any existing popup
-    if (hourlyUnavailabilityPopup) {
-        hourlyUnavailabilityPopup.remove();
-    }
-
-    const cell = document.querySelector(`td[data-time*='${moment(cellDate).format('MMM D, YYYY')}']`);
-    if (cell) {
-        // Create a backdrop element to blur the background
-        backdropElement = document.createElement('div');
-        backdropElement.className = 'backdrop';
-        document.body.appendChild(backdropElement);
-
-        // Create a small popup
-        hourlyUnavailabilityPopup = document.createElement('div');
-        hourlyUnavailabilityPopup.className = 'hourly-unavailability-popup';
-        hourlyUnavailabilityPopup.innerHTML = `
-            <input type="date" id="unavailable-date" value="${moment(cellDate).format('YYYY-MM-DD')}">
-            <input type="time" id="unavailable-start-time">
-            <input type="time" id="unavailable-end-time">
-            <button id="save-hourly-unavailability" style="font-size: 12px;">Save</button>
-            <button id="cancel-hourly-unavailability" style="font-size: 12px;">Cancel</button>
-            <div id="error-message"></div>
-        `;
-
-        // Center the popup
-        hourlyUnavailabilityPopup.style.position = 'fixed';
-        hourlyUnavailabilityPopup.style.top = '50%';
-        hourlyUnavailabilityPopup.style.left = '50%';
-        hourlyUnavailabilityPopup.style.transform = 'translate(-50%, -50%)';
-        hourlyUnavailabilityPopup.style.zIndex = '1';
-
-        document.body.appendChild(hourlyUnavailabilityPopup);
-
-        // Add event listeners
-        document.getElementById('save-hourly-unavailability').addEventListener('click', () => {
-            const date = document.getElementById('unavailable-date').value;
-            const startTime = document.getElementById('unavailable-start-time').value;
-            const endTime = document.getElementById('unavailable-end-time').value;
-            const errorMessage = document.getElementById('error-message');
-
-            // Validate input fields
-            if (!date || !startTime || !endTime) {
-                errorMessage.innerText = 'Please fill in all fields.';
-                return;
-            }
-
-            // Check if start time is before end time
-            if (moment(startTime, 'HH:mm').isAfter(moment(endTime, 'HH:mm'))) {
-                errorMessage.innerText = 'Start time cannot be after end time.';
-                return;
-            }
-
-            // Check if selected date is in the past
-            // if (moment(date).isBefore(moment(), 'day')) {
-            //     errorMessage.innerText = 'Cannot mark unavailability for a past date.';
-            //     return;
-            // }
-
-            // Fetch existing schedules and time off records
-            ZOHO.CRM.API.getAllRecords({ Entity: "Shift_Schedule", sort_order: "asc", sort_by: "Start_Date_and_Work_Start_Time" })
-                .then(function(response) {
-                    const schedules = response.data;
-
-                    ZOHO.CRM.API.getAllRecords({ Entity: "Time_Off", sort_order: "asc", sort_by: "From_Date_Time" })
-                        .then(function(response) {
-                            const timeOffRecords = response.data;
-
-                            if (checkForOverlappingSchedules(tempId, date, startTime, date, endTime, schedules)) {
-                                errorMessage.innerText = "Error: The unavailability overlaps with an existing schedule.";
-                                return;
-                            }
-
-                            if (checkForOverlappingUnavailability(tempId, date, startTime, date, endTime, timeOffRecords)) {
-                                errorMessage.innerText = "Error: The unavailability overlaps with an existing unavailability.";
-                                return;
-                            }
-
-                            // Update cell for hourly unavailability
-                            function updateCellForHourlyUnavailability(tempId, cellDate, startTime, endTime) {
-                                let formattedCellDate = moment(cellDate).format('YYYY-MM-DD');
-                                let formattedStartTime = moment(`${formattedCellDate} ${startTime}`, 'YYYY-MM-DD HH:mm').format('YYYY-MM-DDTHH:mm:ss');
-                                let formattedEndTime = moment(`${formattedCellDate} ${endTime}`, 'YYYY-MM-DD HH:mm').format('YYYY-MM-DDTHH:mm:ss');
-
-                                var recordData = {
-                                    "Name1": tempId,
-                                    "Unavailability": "Hourly",
-                                    "From_Date_Time": formattedStartTime,
-                                    "To_Date": formattedEndTime
-                                };
-
-                                ZOHO.CRM.API.insertRecord({ Entity: "Time_Off", APIData: recordData, Trigger: [] })
-                                    .then(function(data) {
-                                        console.log("Insert Response: ", data);
-                                        if (data.data && data.data.length > 0 && data.data[0].code === "SUCCESS") {
-                                            alert("Hourly Unavailability Record created successfully! ");
-                                            let cellSelector = `td[data-time*='${moment(cellDate).format('MMM D, YYYY')}'][data-temp-id='${tempId}']`;
-                                            let cell = document.querySelector(cellSelector);
-                                            if (cell) {
-                                                let unavailabilityHtml = `
-                                                    <div class="unavailable-box">
-                                                        <p>Unavailable (${startTime} - ${endTime})</p>
-                                                    </div>
-                                                `;
-                                                cell.innerHTML = unavailabilityHtml;
-                                                cell.classList.add('unavailable'); // Mark the cell as unavailable
-                                            }
-                                            fetchAndPopulateCalendar(); // Call this function to re-render the calendar
-                                        } else {
-                                            alert("Failed to create Hourly Unavailability Record: " + (data.data[0].message || "Unknown error"));
-                                        }
-                                    })
-                                    .catch(function(error) {
-                                        console.error('Error inserting Hourly Unavailability Record:', error);
-                                        alert('An error occurred while creating the Hourly Unavailability Record. Check the console for details. ');
-                                    });
-                            }
-
-                            updateCellForHourlyUnavailability(tempId, cellDate, startTime, endTime);
-                            hourlyUnavailabilityPopup.remove(); // Remove the popup
-                            backdropElement.remove(); // Remove the backdrop
-                        })
-                        .catch(function(error) {
-                            console.error('Error fetching Time Off records:', error);
-                            errorMessage.innerText = 'An error occurred while fetching Time Off records.';
-                        });
-                })
-                .catch(function(error) {
-                    console.error('Error fetching Schedules:', error);
-                    errorMessage.innerText = 'An error occurred while fetching Schedules.';
-                });
+            container.appendChild(row);
         });
 
-        document.getElementById('cancel-hourly-unavailability').addEventListener('click', () => {
-            hourlyUnavailabilityPopup.remove(); // Remove the popup
-            backdropElement.remove(); // Remove the backdrop
+        document.querySelectorAll('.shift-checkbox').forEach(checkbox => {
+            checkbox.addEventListener('change', handleShiftSelection);
         });
+
+        console.log("Shift data populated");
     }
-}
 
+    function handleShiftSelection(event) {
+        const checkbox = event.target;
+        const shiftId = checkbox.value;
 
-let searchTerm = '';
-
-function searchLeads(searchTerm) {
-    ZOHO.CRM.API.getAllRecords({ Entity: "Leads", sort_order: "desc", per_page: 200 })
-        .then(function(response) {
-            if (response.data && response.data.length > 0) {
-                const leads = response.data.map(lead => ({
-                    id: lead.id,
-                    First_Name: lead.First_Name,
-                    Last_Name: lead.Last_Name
-                }));
-
-                // Filter leads based on the search term
-                const filteredLeads = leads.filter(lead => {
-                    const fullName = `${lead.First_Name} ${lead.Last_Name}`;
-                    return fullName.toLowerCase().includes(searchTerm.toLowerCase());
-                });
-
-                // Update the calendar with the filtered leads
-                fetchAndPopulateSchedulesAndTimeOff(filteredLeads);
+        if (checkbox.checked) {
+            if (selectedShiftIds.length >= maxSelections) {
+                checkbox.checked = false;
+                alert('You can only select up to two shifts.');
             } else {
-                console.log("No leads found.");
-                populateCalendarBody([], [], []);
+                selectedShiftIds.push(shiftId);
             }
-        })
-        .catch(function(error) {
-            console.error('Error fetching leads:', error);
-            populateCalendarBody([], [], []);
-        });
-}
+        } else {
+            selectedShiftIds = selectedShiftIds.filter(id => id !== shiftId);
+        }
 
-// Add an event listener to the search input field
-document.getElementById('searchInput').addEventListener('input', function(event) {
-    searchTerm = event.target.value;
-    searchLeads(searchTerm);
-});
+        toggleSubmitShiftButtonVisibility();
+    }
+   
 
-document.getElementById('prevWeek').addEventListener('click', function() {
-    currentDate.setDate(currentDate.getDate() - 7);
-    populateCalendarHeader();
-    searchLeads(searchTerm); // Apply the search filter
-});
+    function toggleSubmitButtonVisibility() {
+        const submitBtn = document.getElementById('submitBtn');
+        submitBtn.style.display = selectedRecordId ? 'block' : 'none';
+    }
 
-document.getElementById('nextWeek').addEventListener('click', function() {
-    currentDate.setDate(currentDate.getDate() + 7);
-    populateCalendarHeader();
-    searchLeads(searchTerm); // Apply the search filter
-});
+    function toggleSubmitShiftButtonVisibility() {
+        const submitShiftBtn = document.getElementById('submitShiftBtn');
+        submitShiftBtn.style.display = selectedShiftIds.length === maxSelections ? 'block' : 'none';
+    }
 
-document.getElementById('currentWeek').addEventListener('click', function() {
-    currentDate = new Date(today);
-    populateCalendarHeader();
-    searchLeads(searchTerm); // Apply the search filter
-});
-
-$(document).ready(function() {
-    ZOHO.embeddedApp.on("PageLoad", function(data) {
-        populateCalendarHeader();
-        fetchAndPopulateCalendar();
-    });
-
-    ZOHO.embeddedApp.init();
-
- 
-    document.addEventListener('click', function(event) {
-        let options = document.querySelectorAll('.unavailability-options');
-        options.forEach(option => {
-            if (!option.contains(event.target) && !event.target.classList.contains('three-dots-button')) {
-                option.style.display = 'none';
-            }
-        });
+    ZOHO.embeddedApp.init().then(function() {
+        console.log("Zoho Embedded App SDK initialization completed");
+    }).catch(function(error) {
+        console.error("Zoho Embedded App SDK initialization error:", error);
     });
 });
+
