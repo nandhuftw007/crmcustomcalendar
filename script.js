@@ -51,6 +51,7 @@ function createThreeDotsButton() {
 }
 
 function createUnavailabilityOptions(tempId, cellDate, lead) {
+    
     let options = document.createElement('div');
     options.className = 'unavailability-options';
     options.style.display = 'none';
@@ -295,10 +296,19 @@ function createUnavailabilityOptions(tempId, cellDate, lead) {
             console.error("Error fetching accounts:", error);
         });
     });
+
+    const deleteButtons = options.querySelectorAll('.unavailable-box i');
+    deleteButtons.forEach(button => {
+        button.addEventListener('click', () => {
+            // ADD DELETE LOGIC HERE
+            console.log('Deleted unavailability');
+        });
+    });
     
     options.appendChild(addScheduleButton);
 
     return options;
+    
 }
 
 function handleThreeDotsButtonClick(event) {
@@ -352,7 +362,7 @@ function populateCalendarBody(leads, schedules, timeOffRecords) {
                     if (unavailabilityRecord.Unavailability === 'All Day') {
                         unavailabilityHtml = `
                             <div class="unavailable-box">
-                                <p>Unavailable All Day</p>
+                                <p>Unavailable All Day</p><i class="fa-solid fa-trash"></i>
                             </div>
                         `;
                         // Add a class to the cell if it's unavailable all day
@@ -363,7 +373,7 @@ function populateCalendarBody(leads, schedules, timeOffRecords) {
                         
                         unavailabilityHtml = `
                             <div class="unavailable-box">
-                                <p>Unavailable (${startTimeString} - ${endTimeString})</p>
+                                <p>Unavailable (${startTimeString} - ${endTimeString})</p><i class="fa-solid fa-trash"></i>
                             </div>
                         `;
                     }
@@ -396,16 +406,16 @@ function populateCalendarBody(leads, schedules, timeOffRecords) {
                                     let startTimeString = formatTimeTo12Hour(startDateTime);
                                     let endTimeString = formatTimeTo12Hour(endDateTime);
                                     if (cellDate.toDateString() === startDateTime.toDateString()) {
-                                        scheduleHtml += `<div class="schedule-box"><p>${jobName}</p><p>${startTimeString} - ${endTimeString}</p></div>`;
+                                        scheduleHtml += `<div class="schedule-box"><p>${jobName}</p><p>${startTimeString} - ${endTimeString}</p><i class="fa-solid fa-trash"></i></div>`;
                                     } else if (cellDate > startDateTime && cellDate < endDateTime) {
-                                        scheduleHtml += `<div class="schedule-box"><p>${jobName}</p><p>${startTimeString} - ${endTimeString}</p></div>`;
+                                        scheduleHtml += `<div class="schedule-box"><p>${jobName}</p><p>${startTimeString} - ${endTimeString}</p><i class="fa-solid fa-trash"></i></div>`;
                                     }
                                 }
 
                                 if (cellDate.toDateString() === prevDayDateTime.toDateString()) {
                                     let startTimeString = formatTimeTo12Hour(startDateTime);
                                     let endTimeString = formatTimeTo12Hour(endDateTime);
-                                    scheduleHtml += `<div class="schedule-box"><p>${jobName}</p><p>${startTimeString} - ${endTimeString}</p></div>`;
+                                    scheduleHtml += `<div class="schedule-box"><p>${jobName}</p><p>${startTimeString} - ${endTimeString}</p><i class="fa-solid fa-trash"></i></div>`;
                                 }
                             }
                         }
@@ -413,6 +423,14 @@ function populateCalendarBody(leads, schedules, timeOffRecords) {
 
                     cell.innerHTML += scheduleHtml;
                 }
+                const deleteButtons = cell.querySelectorAll('.schedule-box i, .unavailable-box i');
+                deleteButtons.forEach(button => {
+                    button.addEventListener('click', () => {
+                        // ADD DELETE LOGIC HERE
+                        console.log('Deleted schedule or unavailability');
+                    });
+                });
+
             } else {
                 // Render schedules
                 let scheduleHtml = '';
@@ -439,16 +457,16 @@ function populateCalendarBody(leads, schedules, timeOffRecords) {
                                 let startTimeString = formatTimeTo12Hour(startDateTime);
                                 let endTimeString = formatTimeTo12Hour(endDateTime);
                                 if (cellDate.toDateString() === startDateTime.toDateString()) {
-                                    scheduleHtml += `<div class="schedule-box"><p>${jobName}</p><p>${startTimeString} - ${endTimeString}</p></div>`;
+                                    scheduleHtml += `<div class="schedule-box"><p>${jobName}</p><p>${startTimeString} - ${endTimeString}</p><i class="fa-solid fa-trash"></i></div>`;
                                 } else if (cellDate > startDateTime && cellDate < endDateTime) {
-                                    scheduleHtml += `<div class="schedule-box"><p>${jobName}</p><p>${startTimeString} - ${endTimeString}</p></div>`;
+                                    scheduleHtml += `<div class="schedule-box"><p>${jobName}</p><p>${startTimeString} - ${endTimeString}</p><i class="fa-solid fa-trash"></i></div>`;
                                 }
                             }
 
                             if (cellDate.toDateString() === prevDayDateTime.toDateString()) {
                                 let startTimeString = formatTimeTo12Hour(startDateTime);
                                 let endTimeString = formatTimeTo12Hour(endDateTime);
-                                scheduleHtml += `<div class="schedule-box"><p>${jobName}</p><p>${startTimeString} - ${endTimeString}</p></div>`;
+                                scheduleHtml += `<div class="schedule-box"><p>${jobName}</p><p>${startTimeString} - ${endTimeString}</p><i class="fa-solid fa-trash"></i></div>`;
                             }
                         }
                     }
@@ -682,6 +700,14 @@ function populateCalendarBody(leads, schedules, timeOffRecords) {
                     cell.appendChild(plusButton);
                 }
             }
+
+            const deleteButtons = cell.querySelectorAll('.schedule-box i, .unavailable-box i');
+            deleteButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    // ADD DELETE LOGIC HERE
+                    console.log('Deleted schedule or unavailability');
+                });
+            });
 
             // Add the three-dots button to each cell
             let threeDotsButton = createThreeDotsButton();
@@ -999,7 +1025,7 @@ function markUnavailableHourly(tempId, cellDate) {
                                             if (cell) {
                                                 let unavailabilityHtml = `
                                                     <div class="unavailable-box">
-                                                        <p>Unavailable (${startTime} - ${endTime})</p>
+                                                        <p>Unavailable (${startTime} - ${endTime})</p><i class="fa-solid fa-trash"></i>
                                                     </div>
                                                 `;
                                                 cell.innerHTML = unavailabilityHtml;
