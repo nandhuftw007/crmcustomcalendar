@@ -21,10 +21,24 @@ body {
     padding: 5px;
     margin: 5px 0;
     text-align: left;
+    
 }
 
 .schedule-box p {
     margin: 0;
+}
+
+.schedule-box i,
+.unavailable-box i {
+    font-size: 10px;
+    color: #5a5a5a;
+    cursor: pointer;
+    visibility: hidden;
+}
+
+.schedule-box:hover i,
+.unavailable-box:hover i {
+    visibility: visible; /* Show the icon on hover */
 }
 
 .unavailable-box {
