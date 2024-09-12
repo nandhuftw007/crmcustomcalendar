@@ -427,11 +427,35 @@ function populateCalendarBody(leads, schedules, timeOffRecords) {
                 }
                 const deleteButtons = cell.querySelectorAll('.schedule-box i, .unavailable-box i');
                 deleteButtons.forEach(button => {
-                    button.addEventListener('click', () => {
-                        // ADD DELETE LOGIC HERE
-                        console.log('Deleted schedule or unavailability');
+                    button.addEventListener('click', (event) => {
+                        const parentElement = event.target.closest('.schedule-box, .unavailable-box');
+                        const recordId = parentElement.dataset.recordId;
+                        const isUnavailable = parentElement.classList.contains('unavailable-box');
+                
+                        if (isUnavailable) {
+                            ZOHO.CRM.API.deleteRecord({ Entity: "Time_Off", RecordID: recordId })
+                                .then(function(data) {
+                                    console.log("Time off record deleted successfully:", data);
+                                    alert("Time off record deleted successfully!");
+                                    fetchAndPopulateCalendar();
+                                })
+                                .catch(function(error) {
+                                    console.error("Error deleting time off record:", error);
+                                });
+                        } else {
+                            ZOHO.CRM.API.deleteRecord({ Entity: "Shift_Schedule", RecordID: recordId })
+                                .then(function(data) {
+                                    console.log("Shift schedule record deleted successfully:", data);
+                                    alert("Shift schedule record deleted successfully!");
+                                    fetchAndPopulateCalendar();
+                                })
+                                .catch(function(error) {
+                                    console.error("Error deleting shift schedule record:", error);
+                                });
+                        }
                     });
                 });
+                
 
             } else {
                 // Render schedules
@@ -706,11 +730,35 @@ function populateCalendarBody(leads, schedules, timeOffRecords) {
 
             const deleteButtons = cell.querySelectorAll('.schedule-box i, .unavailable-box i');
             deleteButtons.forEach(button => {
-                button.addEventListener('click', () => {
-                    // ADD DELETE LOGIC HERE
-                    console.log('Deleted schedule or unavailability');
+                button.addEventListener('click', (event) => {
+                    const parentElement = event.target.closest('.schedule-box, .unavailable-box');
+                    const recordId = parentElement.dataset.recordId;
+                    const isUnavailable = parentElement.classList.contains('unavailable-box');
+            
+                    if (isUnavailable) {
+                        ZOHO.CRM.API.deleteRecord({ Entity: "Time_Off", RecordID: recordId })
+                            .then(function(data) {
+                                console.log("Time off record deleted successfully:", data);
+                                alert("Time off record deleted successfully!");
+                                fetchAndPopulateCalendar();
+                            })
+                            .catch(function(error) {
+                                console.error("Error deleting time off record:", error);
+                            });
+                    } else {
+                        ZOHO.CRM.API.deleteRecord({ Entity: "Shift_Schedule", RecordID: recordId })
+                            .then(function(data) {
+                                console.log("Shift schedule record deleted successfully:", data);
+                                alert("Shift schedule record deleted successfully!");
+                                fetchAndPopulateCalendar();
+                            })
+                            .catch(function(error) {
+                                console.error("Error deleting shift schedule record:", error);
+                            });
+                    }
                 });
             });
+            
 
             // Add the three-dots button to each cell
             let threeDotsButton = createThreeDotsButton();
