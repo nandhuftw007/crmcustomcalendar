@@ -361,7 +361,7 @@ function populateCalendarBody(leads, schedules, timeOffRecords) {
                     let unavailabilityHtml = '';
                     if (unavailabilityRecord.Unavailability === 'All Day') {
                         unavailabilityHtml = `
-                            <div class="unavailable-box">
+                            <div class="unavailable-box" data-record-id="${unavailabilityRecord.id}">
                                 <p>Unavailable All Day</p><i class="fa-solid fa-trash"></i>
                             </div>
                         `;
@@ -372,13 +372,14 @@ function populateCalendarBody(leads, schedules, timeOffRecords) {
                         let endTimeString = moment(unavailabilityRecord.To_Date).format('hh:mm a');
                         
                         unavailabilityHtml = `
-                            <div class="unavailable-box">
+                            <div class="unavailable-box" data-record-id="${unavailabilityRecord.id}">
                                 <p>Unavailable (${startTimeString} - ${endTimeString})</p><i class="fa-solid fa-trash"></i>
                             </div>
                         `;
                     }
                     cell.innerHTML += unavailabilityHtml;
                 });
+                
 
                 // Render schedules only if the cell doesn't have the 'unavailable' class
                 if (!cell.classList.contains('unavailable')) {
@@ -406,18 +407,19 @@ function populateCalendarBody(leads, schedules, timeOffRecords) {
                                     let startTimeString = formatTimeTo12Hour(startDateTime);
                                     let endTimeString = formatTimeTo12Hour(endDateTime);
                                     if (cellDate.toDateString() === startDateTime.toDateString()) {
-                                        scheduleHtml += `<div class="schedule-box"><p>${jobName}</p><p>${startTimeString} - ${endTimeString}</p><i class="fa-solid fa-trash"></i></div>`;
+                                        scheduleHtml += `<div class="schedule-box" data-record-id="${schedule.id}">
+                                                            <p>${jobName}</p>
+                                                            <p>${startTimeString} - ${endTimeString}</p><i class="fa-solid fa-trash"></i>
+                                                         </div>`;
                                     } else if (cellDate > startDateTime && cellDate < endDateTime) {
-                                        scheduleHtml += `<div class="schedule-box"><p>${jobName}</p><p>${startTimeString} - ${endTimeString}</p><i class="fa-solid fa-trash"></i></div>`;
+                                        scheduleHtml += `<div class="schedule-box" data-record-id="${schedule.id}">
+                                                            <p>${jobName}</p>
+                                                            <p>${startTimeString} - ${endTimeString}</p><i class="fa-solid fa-trash"></i>
+                                                         </div>`;
                                     }
                                 }
-
-                                if (cellDate.toDateString() === prevDayDateTime.toDateString()) {
-                                    let startTimeString = formatTimeTo12Hour(startDateTime);
-                                    let endTimeString = formatTimeTo12Hour(endDateTime);
-                                    scheduleHtml += `<div class="schedule-box"><p>${jobName}</p><p>${startTimeString} - ${endTimeString}</p><i class="fa-solid fa-trash"></i></div>`;
-                                }
                             }
+                            
                         }
                     });
 
@@ -457,18 +459,19 @@ function populateCalendarBody(leads, schedules, timeOffRecords) {
                                 let startTimeString = formatTimeTo12Hour(startDateTime);
                                 let endTimeString = formatTimeTo12Hour(endDateTime);
                                 if (cellDate.toDateString() === startDateTime.toDateString()) {
-                                    scheduleHtml += `<div class="schedule-box"><p>${jobName}</p><p>${startTimeString} - ${endTimeString}</p><i class="fa-solid fa-trash"></i></div>`;
+                                    scheduleHtml += `<div class="schedule-box" data-record-id="${schedule.id}">
+                                                        <p>${jobName}</p>
+                                                        <p>${startTimeString} - ${endTimeString}</p><i class="fa-solid fa-trash"></i>
+                                                     </div>`;
                                 } else if (cellDate > startDateTime && cellDate < endDateTime) {
-                                    scheduleHtml += `<div class="schedule-box"><p>${jobName}</p><p>${startTimeString} - ${endTimeString}</p><i class="fa-solid fa-trash"></i></div>`;
+                                    scheduleHtml += `<div class="schedule-box" data-record-id="${schedule.id}">
+                                                        <p>${jobName}</p>
+                                                        <p>${startTimeString} - ${endTimeString}</p><i class="fa-solid fa-trash"></i>
+                                                     </div>`;
                                 }
                             }
-
-                            if (cellDate.toDateString() === prevDayDateTime.toDateString()) {
-                                let startTimeString = formatTimeTo12Hour(startDateTime);
-                                let endTimeString = formatTimeTo12Hour(endDateTime);
-                                scheduleHtml += `<div class="schedule-box"><p>${jobName}</p><p>${startTimeString} - ${endTimeString}</p><i class="fa-solid fa-trash"></i></div>`;
-                            }
                         }
+                        
                     }
                 });
 
